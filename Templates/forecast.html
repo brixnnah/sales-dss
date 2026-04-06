@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="bg-blob1"></div>
@@ -34,6 +35,14 @@
         <a href="/forecast" class="nav-item active">
           <span class="nav-icon">FC</span>
           Forecast
+        </a>
+        <a href="/eda" class="nav-item">
+          <span class="nav-icon">ED</span>
+          EDA
+        </a>
+        <a href="/charts" class="nav-item">
+          <span class="nav-icon">CH</span>
+          Charts
         </a>
         <a href="{{ url_for('logout') }}" class="nav-item" style="color:var(--text3);">
           <span class="nav-icon">⏻</span>
@@ -126,10 +135,36 @@
       {% endif %}
 
       {% if forecast %}
+        <div class="row row-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">History vs Forecast</div>
+                <div class="card-subtitle">Recent demand history extended into the forecast horizon</div>
+              </div>
+            </div>
+            <div class="chart-wrap-tall">
+              <canvas id="forecastTrendChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Forecast Confidence Range</div>
+                <div class="card-subtitle">Projected daily demand with lower and upper bounds</div>
+              </div>
+            </div>
+            <div class="chart-wrap-tall">
+              <canvas id="forecastBandChart"></canvas>
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header">
             <div>
-              <div class="card-title">30-Day Demand Forecast</div>
+              <div class="card-title">{{ days }}-Day Demand Forecast</div>
               <div class="card-subtitle">Daily sales forecast with confidence bounds</div>
             </div>
           </div>
@@ -157,5 +192,104 @@
       {% endif %}
     </main>
   </div>
+
+  {% if forecast %}
+  <script id="forecast-chart-data" type="application/json">{{ {
+    'history_dates': history_dates,
+    'history_values': history_values,
+    'forecast_dates': forecast_dates,
+    'forecast_values': forecast_values,
+    'forecast_lower': forecast_lower,
+    'forecast_upper': forecast_upper
+  } | tojson }}</script>
+  <script>
+    const forecastChartData = JSON.parse(document.getElementById('forecast-chart-data').textContent);
+    const historyDates = forecastChartData.history_dates || [];
+    const historyValues = forecastChartData.history_values || [];
+    const forecastDates = forecastChartData.forecast_dates || [];
+    const forecastValues = forecastChartData.forecast_values || [];
+    const forecastLower = forecastChartData.forecast_lower || [];
+    const forecastUpper = forecastChartData.forecast_upper || [];
+
+    const trendLabels = [...historyDates, ...forecastDates];
+    const historySeries = [...(historyValues || []).map(v => Number(v) || 0), ...forecastDates.map(() => null)];
+    const forecastSeries = [...historyDates.map(() => null), ...(forecastValues || []).map(v => Number(v) || 0)];
+
+    const forecastChartOptions = {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: '#4b5563' } }
+      },
+      scales: {
+        x: { ticks: { color: '#4b5563', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(123,30,58,0.12)' } },
+        y: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' }, beginAtZero: true }
+      }
+    };
+
+    new Chart(document.getElementById('forecastTrendChart'), {
+      type: 'line',
+      data: {
+        labels: trendLabels,
+        datasets: [
+          {
+            label: 'Historical Demand',
+            data: historySeries,
+            borderColor: '#5a1029',
+            backgroundColor: 'rgba(90,16,41,0.08)',
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 0,
+          },
+          {
+            label: 'Forecast Demand',
+            data: forecastSeries,
+            borderColor: '#a63a5f',
+            backgroundColor: 'rgba(166,58,95,0.1)',
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 0,
+          }
+        ]
+      },
+      options: forecastChartOptions
+    });
+
+    new Chart(document.getElementById('forecastBandChart'), {
+      type: 'line',
+      data: {
+        labels: forecastDates,
+        datasets: [
+          {
+            label: 'Upper Bound',
+            data: (forecastUpper || []).map(v => Number(v) || 0),
+            borderColor: 'rgba(203,108,134,0.45)',
+            backgroundColor: 'rgba(203,108,134,0)',
+            pointRadius: 0,
+            tension: 0.3,
+          },
+          {
+            label: 'Forecast',
+            data: (forecastValues || []).map(v => Number(v) || 0),
+            borderColor: '#7b1e3a',
+            backgroundColor: 'rgba(123,30,58,0.14)',
+            fill: false,
+            pointRadius: 0,
+            tension: 0.3,
+          },
+          {
+            label: 'Lower Bound',
+            data: (forecastLower || []).map(v => Number(v) || 0),
+            borderColor: 'rgba(203,108,134,0.45)',
+            backgroundColor: 'rgba(203,108,134,0.18)',
+            fill: '-1',
+            pointRadius: 0,
+            tension: 0.3,
+          }
+        ]
+      },
+      options: forecastChartOptions
+    });
+  </script>
+  {% endif %}
 </body>
 </html>

@@ -6,6 +6,7 @@ from app import (
     build_dss_recommendations,
     calculate_inventory_recommendation,
     compute_daily_metrics,
+    compute_eda,
     load_data,
 )
 
@@ -90,3 +91,17 @@ def test_inventory_recommendation_monotonic_with_lead_time_and_service_level(sam
     assert higher_lead_time['reorder_point'] >= base['reorder_point']
     assert higher_lead_time['target_stock'] >= base['target_stock']
     assert higher_service_level['safety_stock'] >= base['safety_stock']
+
+
+def test_compute_eda_returns_visualization_series(sample_df):
+    enriched_df = sample_df.copy()
+    enriched_df['unique_skus'] = [3, 2, 4]
+
+    summary = compute_eda(enriched_df)
+
+    assert summary is not None
+    assert len(summary['price_band_labels']) == 5
+    assert len(summary['price_band_values']) == 5
+    assert len(summary['category_mix_labels']) > 0
+    assert len(summary['category_mix_revenue']) == len(summary['category_mix_labels'])
+    assert len(summary['category_mix_quantity']) == len(summary['category_mix_labels'])

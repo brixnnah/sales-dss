@@ -142,6 +142,43 @@ def compute_eda(df, start_date=None, end_date=None, category=None):
     weekday = filtered.groupby(filtered['order_date'].dt.day_name())['qty_ordered'].sum()
     weekday = weekday.reindex(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']).fillna(0)
 
+    price_band_labels = ['< $50', '$50-$150', '$150-$300', '$300-$600', '$600+']
+    price_bands = pd.cut(
+        filtered['price'],
+        bins=[-np.inf, 50, 150, 300, 600, np.inf],
+        labels=price_band_labels,
+        include_lowest=True,
+    )
+    price_distribution = (
+        filtered.assign(price_band=price_bands)
+        .groupby('price_band', observed=False)['qty_ordered']
+        .sum()
+        .reindex(price_band_labels, fill_value=0)
+    )
+
+    category_mix = (
+        filtered.groupby('category')
+        .agg(
+            total_quantity=('qty_ordered', 'sum'),
+            total_revenue=('sales', 'sum'),
+            avg_price=('price', 'mean'),
+        )
+        .sort_values('total_revenue', ascending=False)
+        .head(8)
+        .reset_index()
+    )
+
+    sku_values = []
+    if 'unique_skus' in filtered.columns:
+        monthly_sku = (
+            filtered.set_index('order_date')
+            .resample('ME')['unique_skus']
+            .mean()
+            .fillna(0)
+            .reset_index()
+        )
+        sku_values = [int(round(v)) for v in monthly_sku['unique_skus'].tolist()]
+
     monthly_growth_pct = 0.0
     if len(monthly) >= 2 and float(monthly['sales'].iloc[-2]) != 0:
         monthly_growth_pct = ((float(monthly['sales'].iloc[-1]) - float(monthly['sales'].iloc[-2])) / float(monthly['sales'].iloc[-2])) * 100.0
@@ -164,12 +201,19 @@ def compute_eda(df, start_date=None, end_date=None, category=None):
         'monthly_dates': [d.strftime('%Y-%m') for d in monthly['order_date'].tolist()],
         'monthly_quantity': [int(v) for v in monthly['qty_ordered'].tolist()],
         'monthly_revenue': [float(v) for v in monthly['sales'].tolist()],
+        'monthly_sku_values': sku_values,
         'top_qty_categories': category_qty.index.astype(str).tolist(),
         'top_qty_values': [int(v) for v in category_qty.tolist()],
         'top_revenue_categories': category_sales.index.astype(str).tolist(),
         'top_revenue_values': [float(v) for v in category_sales.tolist()],
         'weekday_names': weekday.index.tolist(),
         'weekday_values': [int(v) for v in weekday.tolist()],
+        'price_band_labels': price_band_labels,
+        'price_band_values': [int(v) for v in price_distribution.tolist()],
+        'category_mix_labels': category_mix['category'].astype(str).tolist(),
+        'category_mix_revenue': [float(v) for v in category_mix['total_revenue'].tolist()],
+        'category_mix_quantity': [int(v) for v in category_mix['total_quantity'].tolist()],
+        'category_mix_avg_price': [round(float(v), 2) for v in category_mix['avg_price'].tolist()],
         'monthly_growth_pct': round(float(monthly_growth_pct), 2),
         'busiest_weekday': busiest_weekday
     }
@@ -257,6 +301,47 @@ def calculate_inventory_recommendation(df, category, forecast_records=None, lead
         'reorder_point': reorder_point,
         'safety_stock': safety_stock,
         'target_stock': target_stock
+    }
+
+
+def build_forecast_visual_context(df, category, forecast_days):
+    """Prepare forecast history and projection data for chart rendering."""
+    forecast_records = None
+    error = None
+    history_dates = []
+    history_values = []
+    forecast_dates = []
+    forecast_values = []
+    forecast_lower = []
+    forecast_upper = []
+
+    if category:
+        category_history = (
+            df[df['category'] == category]
+            .groupby('order_date', as_index=False)['qty_ordered']
+            .sum()
+            .sort_values('order_date')
+        )
+        recent_history = category_history.tail(45)
+        history_dates = [d.strftime('%Y-%m-%d') for d in recent_history['order_date'].tolist()]
+        history_values = [float(v) for v in recent_history['qty_ordered'].tolist()]
+
+        forecast_records, error = forecast_category_sales(df, category, periods=forecast_days)
+        if not error:
+            forecast_dates = [record['date'] for record in forecast_records]
+            forecast_values = [round(float(record['forecast']), 2) for record in forecast_records]
+            forecast_lower = [round(float(record['lower_bound']), 2) for record in forecast_records]
+            forecast_upper = [round(float(record['upper_bound']), 2) for record in forecast_records]
+
+    return {
+        'forecast': forecast_records,
+        'error': error,
+        'history_dates': history_dates,
+        'history_values': history_values,
+        'forecast_dates': forecast_dates,
+        'forecast_values': forecast_values,
+        'forecast_lower': forecast_lower,
+        'forecast_upper': forecast_upper,
     }
 
 
@@ -354,12 +439,19 @@ def eda():
             monthly_dates=[],
             monthly_quantity=[],
             monthly_revenue=[],
+            monthly_sku_values=[],
             top_qty_categories=[],
             top_qty_values=[],
             top_revenue_categories=[],
             top_revenue_values=[],
             weekday_names=[],
             weekday_values=[],
+            price_band_labels=[],
+            price_band_values=[],
+            category_mix_labels=[],
+            category_mix_revenue=[],
+            category_mix_quantity=[],
+            category_mix_avg_price=[],
             monthly_growth_pct=0,
             busiest_weekday='N/A',
             start_date=start_date,
@@ -384,12 +476,19 @@ def eda():
         monthly_dates=summary['monthly_dates'],
         monthly_quantity=summary['monthly_quantity'],
         monthly_revenue=summary['monthly_revenue'],
+        monthly_sku_values=summary['monthly_sku_values'],
         top_qty_categories=summary['top_qty_categories'],
         top_qty_values=summary['top_qty_values'],
         top_revenue_categories=summary['top_revenue_categories'],
         top_revenue_values=summary['top_revenue_values'],
         weekday_names=summary['weekday_names'],
         weekday_values=summary['weekday_values'],
+        price_band_labels=summary['price_band_labels'],
+        price_band_values=summary['price_band_values'],
+        category_mix_labels=summary['category_mix_labels'],
+        category_mix_revenue=summary['category_mix_revenue'],
+        category_mix_quantity=summary['category_mix_quantity'],
+        category_mix_avg_price=summary['category_mix_avg_price'],
         monthly_growth_pct=summary['monthly_growth_pct'],
         busiest_weekday=summary['busiest_weekday'],
         start_date=start_date,
@@ -407,30 +506,90 @@ def forecast():
     categories = sorted(df['category'].unique().tolist())
     selected_category = request.args.get('category', categories[0] if categories else '')
     forecast_days = int(request.args.get('days', 30))
-
-    forecast_records = None
+    forecast_context = build_forecast_visual_context(df, selected_category, forecast_days)
     recommendation = None
-    error = None
 
-    if selected_category:
-        forecast_records, error = forecast_category_sales(df, selected_category, periods=forecast_days)
-        if not error:
-            recommendation = calculate_inventory_recommendation(
-                df,
-                selected_category,
-                forecast_records=forecast_records,
-                lead_time_days=14,
-                service_level=0.95
-            )
+    if not forecast_context['error'] and forecast_context['forecast']:
+        recommendation = calculate_inventory_recommendation(
+            df,
+            selected_category,
+            forecast_records=forecast_context['forecast'],
+            lead_time_days=14,
+            service_level=0.95
+        )
 
     return render_template(
         'forecast.html',
         categories=categories,
         selected_category=selected_category,
         days=forecast_days,
-        forecast=forecast_records,
+        forecast=forecast_context['forecast'],
         recommendation=recommendation,
-        error=error,
+        error=forecast_context['error'],
+        history_dates=forecast_context['history_dates'],
+        history_values=forecast_context['history_values'],
+        forecast_dates=forecast_context['forecast_dates'],
+        forecast_values=forecast_context['forecast_values'],
+        forecast_lower=forecast_context['forecast_lower'],
+        forecast_upper=forecast_context['forecast_upper'],
+        current_date=pd.Timestamp.today().strftime('%Y-%m-%d')
+    )
+
+
+@app.route('/charts')
+@login_required
+def charts():
+    df = load_data()
+    categories = sorted(df['category'].astype(str).unique().tolist())
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    top_n = int(request.args.get('top_n', 10))
+    forecast_days = int(request.args.get('days', 30))
+    selected_category = request.args.get('category', categories[0] if categories else '')
+
+    metrics = compute_daily_metrics(df, start_date, end_date, top_n)
+    summary = compute_eda(df, start_date, end_date, selected_category or None)
+    forecast_context = build_forecast_visual_context(df, selected_category, forecast_days)
+
+    error = None
+    if metrics is None or summary is None:
+        error = 'No data for the selected filters.'
+
+    return render_template(
+        'charts.html',
+        error=error or forecast_context['error'],
+        categories=categories,
+        selected_category=selected_category,
+        start_date=start_date,
+        end_date=end_date,
+        top_n=top_n,
+        days=forecast_days,
+        months=[] if metrics is None else metrics['months'],
+        revenue_values=[] if metrics is None else metrics['revenue_values'],
+        profit_values=[] if metrics is None else metrics['profit_values'],
+        quantity_values=[] if metrics is None else metrics['quantity_values'],
+        top_qty_products=[] if metrics is None else metrics['top_qty_products'],
+        top_qty_values=[] if metrics is None else metrics['top_qty_values'],
+        top_revenue_products=[] if metrics is None else metrics['top_revenue_products'],
+        top_revenue_values=[] if metrics is None else metrics['top_revenue_values'],
+        monthly_dates=[] if summary is None else summary['monthly_dates'],
+        monthly_quantity=[] if summary is None else summary['monthly_quantity'],
+        monthly_revenue=[] if summary is None else summary['monthly_revenue'],
+        monthly_sku_values=[] if summary is None else summary['monthly_sku_values'],
+        weekday_names=[] if summary is None else summary['weekday_names'],
+        weekday_values=[] if summary is None else summary['weekday_values'],
+        price_band_labels=[] if summary is None else summary['price_band_labels'],
+        price_band_values=[] if summary is None else summary['price_band_values'],
+        category_mix_labels=[] if summary is None else summary['category_mix_labels'],
+        category_mix_revenue=[] if summary is None else summary['category_mix_revenue'],
+        category_mix_quantity=[] if summary is None else summary['category_mix_quantity'],
+        category_mix_avg_price=[] if summary is None else summary['category_mix_avg_price'],
+        history_dates=forecast_context['history_dates'],
+        history_values=forecast_context['history_values'],
+        forecast_dates=forecast_context['forecast_dates'],
+        forecast_values=forecast_context['forecast_values'],
+        forecast_lower=forecast_context['forecast_lower'],
+        forecast_upper=forecast_context['forecast_upper'],
         current_date=pd.Timestamp.today().strftime('%Y-%m-%d')
     )
 

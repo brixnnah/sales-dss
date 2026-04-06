@@ -41,6 +41,10 @@
           <span class="nav-icon">ED</span>
           EDA
         </a>
+        <a href="/charts" class="nav-item">
+          <span class="nav-icon">CH</span>
+          Charts
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -200,6 +204,32 @@
         </div>
       </div>
 
+          <div class="row row-2">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Quantity Trend Over Time</div>
+                  <div class="card-subtitle">Monthly unit movement for the selected date range</div>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="quantityTrendChart"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Revenue Share Mix</div>
+                  <div class="card-subtitle">Contribution split across top categories</div>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="revenueMixChart"></canvas>
+              </div>
+            </div>
+          </div>
+
       <!-- DSS Recommendations -->
       <div class="card">
         <div class="card-header">
@@ -251,10 +281,13 @@
     var top_qty_values = {{ top_qty_values | tojson }};
     var top_revenue_products = {{ top_revenue_products | tojson }};
     var top_revenue_values = {{ top_revenue_values | tojson }};
+    var quantity_values = {{ quantity_values | tojson }};
 
     // Force numeric arrays so Chart.js does not fall back to 0..1 axes when values are parsed as non-numeric.
     const safeTopQtyValues = (top_qty_values || []).map(v => Number(v) || 0);
     const safeTopRevenueValues = (top_revenue_values || []).map(v => Number(v) || 0);
+    const safeQuantityValues = (quantity_values || []).map(v => Number(v) || 0);
+    const mixColors = ['#7b1e3a', '#a63a5f', '#cb6c86', '#8f2f4f', '#5a1029', '#b55473', '#d68aa0', '#6f2238', '#94516a', '#e7bcc9'];
 
     // Chart.js configurations with dark theme
     const chartOptions = {
@@ -360,6 +393,56 @@
         },
         plugins: {
           legend: { display: false }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('quantityTrendChart'), {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Units Sold',
+          data: safeQuantityValues,
+          backgroundColor: 'rgba(166,58,95,0.72)',
+          borderColor: '#7b1e3a',
+          borderWidth: 1,
+          borderRadius: 8,
+          maxBarThickness: 34,
+        }]
+      },
+      options: {
+        ...chartOptions,
+        plugins: { legend: { display: false } },
+        scales: {
+          ...chartOptions.scales,
+          y: {
+            ...chartOptions.scales.y,
+            beginAtZero: true,
+          }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('revenueMixChart'), {
+      type: 'doughnut',
+      data: {
+        labels: top_revenue_products,
+        datasets: [{
+          data: safeTopRevenueValues,
+          backgroundColor: mixColors.slice(0, top_revenue_products.length),
+          borderColor: '#ffffff',
+          borderWidth: 2,
+          hoverOffset: 8,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#31433c', boxWidth: 12, usePointStyle: true }
+          }
         }
       }
     });

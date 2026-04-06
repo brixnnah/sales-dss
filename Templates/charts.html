@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Charts & Visualizations</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="bg-blob1"></div>
+  <div class="bg-blob2"></div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-mark">
+          <div class="logo-icon">DS</div>
+          <div>
+            <div class="logo-text">Supermarket</div>
+            <div class="logo-sub">DSS System</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <div class="nav-section">Navigation</div>
+        <a href="/" class="nav-item">
+          <span class="nav-icon">HM</span>
+          Home
+        </a>
+        <a href="/forecast" class="nav-item">
+          <span class="nav-icon">FC</span>
+          Forecast
+        </a>
+        <a href="/eda" class="nav-item">
+          <span class="nav-icon">ED</span>
+          EDA
+        </a>
+        <a href="/charts" class="nav-item active">
+          <span class="nav-icon">CH</span>
+          Charts
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar">{{ current_user.id[:1] | upper }}</div>
+          <div style="flex:1;">
+            <div class="user-name">{{ current_user.id }}</div>
+            <div class="user-role">{{ current_user.role }}</div>
+          </div>
+          <a href="{{ url_for('logout') }}" title="Logout"
+             style="color:var(--text3); font-size:18px; text-decoration:none; margin-left:6px;"
+             onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text3)'">⏻</a>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Charts & Visualizations</div>
+          <div class="page-subtitle">A dedicated page for interactive sales trends, category mix, demand patterns, and forecast visuals.</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="date-chip">
+            <span>Updated</span>
+            {{ current_date or 'Today' }}
+          </div>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="alert danger">
+          <span class="alert-icon">!</span>
+          <div>
+            <div class="alert-title">Error</div>
+            <div class="alert-msg">{{ error }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Visualization Filters</div>
+            <div class="card-subtitle">Refine chart data by date, category, ranking depth, and forecast horizon</div>
+          </div>
+          <div class="card-badge">Charts Lab</div>
+        </div>
+        <form method="get" class="input-group">
+          <div class="field">
+            <label>Start Date</label>
+            <input type="date" name="start_date" value="{{ start_date or '' }}" />
+          </div>
+          <div class="field">
+            <label>End Date</label>
+            <input type="date" name="end_date" value="{{ end_date or '' }}" />
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <select name="category">
+              {% for category in categories %}
+                <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>{{ category }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Top N Categories</label>
+            <input type="number" name="top_n" min="3" max="20" value="{{ top_n }}" />
+          </div>
+          <div class="field">
+            <label>Forecast Days</label>
+            <input type="number" name="days" min="7" max="90" value="{{ days }}" />
+          </div>
+          <div class="field" style="align-self:end;">
+            <button type="submit" class="btn btn-primary">Refresh Charts</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Revenue and Profit Trend</div>
+              <div class="card-subtitle">Month-by-month commercial performance</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Top Revenue Mix</div>
+              <div class="card-subtitle">Share of revenue by leading categories</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="mixChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Weekday Demand Pattern</div>
+              <div class="card-subtitle">Units sold by day of week</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="weekdayChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Price Band Distribution</div>
+              <div class="card-subtitle">Quantity concentration across price ranges</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="priceBandChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Volume vs SKU Breadth</div>
+              <div class="card-subtitle">Monthly quantity overlaid with active SKU breadth</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="skuChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Category Bubble Map</div>
+              <div class="card-subtitle">Revenue, average price, and quantity in one view</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="bubbleChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">History vs Forecast</div>
+              <div class="card-subtitle">Recent actual demand followed by predicted demand</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="forecastTrendChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Forecast Confidence Range</div>
+              <div class="card-subtitle">Projected demand with lower and upper bounds</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="forecastBandChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script id="charts-page-data" type="application/json">{{ {
+    'months': months,
+    'revenue_values': revenue_values,
+    'profit_values': profit_values,
+    'quantity_values': quantity_values,
+    'top_revenue_products': top_revenue_products,
+    'top_revenue_values': top_revenue_values,
+    'weekday_names': weekday_names,
+    'weekday_values': weekday_values,
+    'price_band_labels': price_band_labels,
+    'price_band_values': price_band_values,
+    'monthly_dates': monthly_dates,
+    'monthly_quantity': monthly_quantity,
+    'monthly_sku_values': monthly_sku_values,
+    'category_mix_labels': category_mix_labels,
+    'category_mix_revenue': category_mix_revenue,
+    'category_mix_quantity': category_mix_quantity,
+    'category_mix_avg_price': category_mix_avg_price,
+    'history_dates': history_dates,
+    'history_values': history_values,
+    'forecast_dates': forecast_dates,
+    'forecast_values': forecast_values,
+    'forecast_lower': forecast_lower,
+    'forecast_upper': forecast_upper
+  } | tojson }}</script>
+  <script>
+    const chartsPageData = JSON.parse(document.getElementById('charts-page-data').textContent);
+    const palette = ['#7b1e3a', '#a63a5f', '#cb6c86', '#8f2f4f', '#5a1029', '#b55473', '#d68aa0', '#6f2238', '#94516a', '#e7bcc9'];
+
+    const baseOptions = {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#4b5563' } } },
+      scales: {
+        x: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' } },
+        y: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' }, beginAtZero: true }
+      }
+    };
+
+    new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: chartsPageData.months || [],
+        datasets: [
+          {
+            label: 'Revenue',
+            data: (chartsPageData.revenue_values || []).map(v => Number(v) || 0),
+            borderColor: '#7b1e3a',
+            backgroundColor: 'rgba(123,30,58,0.14)',
+            fill: true,
+            tension: 0.35,
+          },
+          {
+            label: 'Profit',
+            data: (chartsPageData.profit_values || []).map(v => Number(v) || 0),
+            borderColor: '#cb6c86',
+            backgroundColor: 'rgba(203,108,134,0.06)',
+            fill: false,
+            tension: 0.35,
+          }
+        ]
+      },
+      options: baseOptions
+    });
+
+    new Chart(document.getElementById('mixChart'), {
+      type: 'doughnut',
+      data: {
+        labels: chartsPageData.top_revenue_products || [],
+        datasets: [{
+          data: (chartsPageData.top_revenue_values || []).map(v => Number(v) || 0),
+          backgroundColor: palette.slice(0, (chartsPageData.top_revenue_products || []).length),
+          borderColor: '#ffffff',
+          borderWidth: 2,
+          hoverOffset: 8,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { color: '#4b5563', usePointStyle: true } } }
+      }
+    });
+
+    new Chart(document.getElementById('weekdayChart'), {
+      type: 'bar',
+      data: {
+        labels: chartsPageData.weekday_names || [],
+        datasets: [{
+          label: 'Units Sold',
+          data: (chartsPageData.weekday_values || []).map(v => Number(v) || 0),
+          backgroundColor: 'rgba(166,58,95,0.75)',
+          borderColor: '#7b1e3a',
+          borderWidth: 1,
+          borderRadius: 8,
+        }]
+      },
+      options: { ...baseOptions, plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById('priceBandChart'), {
+      type: 'polarArea',
+      data: {
+        labels: chartsPageData.price_band_labels || [],
+        datasets: [{
+          data: (chartsPageData.price_band_values || []).map(v => Number(v) || 0),
+          backgroundColor: palette.slice(0, 5).map(color => `${color}cc`),
+          borderColor: '#ffffff',
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { color: '#4b5563', usePointStyle: true } } },
+        scales: {
+          r: {
+            grid: { color: 'rgba(123,30,58,0.12)' },
+            angleLines: { color: 'rgba(123,30,58,0.12)' },
+            ticks: { color: '#4b5563', backdropColor: 'rgba(255,255,255,0.82)' }
+          }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('skuChart'), {
+      type: 'bar',
+      data: {
+        labels: chartsPageData.monthly_dates || [],
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Units Sold',
+            data: (chartsPageData.monthly_quantity || []).map(v => Number(v) || 0),
+            backgroundColor: 'rgba(166,58,95,0.72)',
+            borderColor: '#7b1e3a',
+            borderWidth: 1,
+            borderRadius: 7,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: 'Avg Active SKUs',
+            data: (chartsPageData.monthly_sku_values || []).map(v => Number(v) || 0),
+            borderColor: '#5a1029',
+            backgroundColor: 'rgba(90,16,41,0.08)',
+            fill: false,
+            tension: 0.35,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#4b5563' } } },
+        scales: {
+          x: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' } },
+          y: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' }, beginAtZero: true },
+          y1: { position: 'right', ticks: { color: '#4b5563' }, grid: { drawOnChartArea: false }, beginAtZero: true }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('bubbleChart'), {
+      type: 'bubble',
+      data: {
+        datasets: [{
+          data: (chartsPageData.category_mix_labels || []).map((label, index) => ({
+            x: Number((chartsPageData.category_mix_avg_price || [])[index]) || 0,
+            y: Number((chartsPageData.category_mix_revenue || [])[index]) || 0,
+            r: Math.max(8, Math.min(24, (Number((chartsPageData.category_mix_quantity || [])[index]) || 0) / 3500)),
+            categoryLabel: label,
+          })),
+          backgroundColor: 'rgba(123,30,58,0.45)',
+          borderColor: '#7b1e3a',
+          borderWidth: 1.5,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const point = context.raw;
+                return `${point.categoryLabel}: avg price $${point.x.toFixed(2)}, revenue $${point.y.toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Average Unit Price', color: '#4b5563' },
+            ticks: { color: '#4b5563' },
+            grid: { color: 'rgba(123,30,58,0.12)' }
+          },
+          y: {
+            title: { display: true, text: 'Category Revenue', color: '#4b5563' },
+            ticks: { color: '#4b5563' },
+            grid: { color: 'rgba(123,30,58,0.12)' },
+            beginAtZero: true,
+          }
+        }
+      }
+    });
+
+    const historyDates = chartsPageData.history_dates || [];
+    const forecastDates = chartsPageData.forecast_dates || [];
+    const trendLabels = [...historyDates, ...forecastDates];
+    const historySeries = [...(chartsPageData.history_values || []).map(v => Number(v) || 0), ...forecastDates.map(() => null)];
+    const forecastSeries = [...historyDates.map(() => null), ...(chartsPageData.forecast_values || []).map(v => Number(v) || 0)];
+    const forecastOptions = {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#4b5563' } } },
+      scales: {
+        x: { ticks: { color: '#4b5563', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(123,30,58,0.12)' } },
+        y: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' }, beginAtZero: true }
+      }
+    };
+
+    new Chart(document.getElementById('forecastTrendChart'), {
+      type: 'line',
+      data: {
+        labels: trendLabels,
+        datasets: [
+          {
+            label: 'Historical Demand',
+            data: historySeries,
+            borderColor: '#5a1029',
+            backgroundColor: 'rgba(90,16,41,0.08)',
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 0,
+          },
+          {
+            label: 'Forecast Demand',
+            data: forecastSeries,
+            borderColor: '#a63a5f',
+            backgroundColor: 'rgba(166,58,95,0.1)',
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 0,
+          }
+        ]
+      },
+      options: forecastOptions
+    });
+
+    new Chart(document.getElementById('forecastBandChart'), {
+      type: 'line',
+      data: {
+        labels: forecastDates,
+        datasets: [
+          {
+            label: 'Upper Bound',
+            data: (chartsPageData.forecast_upper || []).map(v => Number(v) || 0),
+            borderColor: 'rgba(203,108,134,0.45)',
+            backgroundColor: 'rgba(203,108,134,0)',
+            pointRadius: 0,
+            tension: 0.3,
+          },
+          {
+            label: 'Forecast',
+            data: (chartsPageData.forecast_values || []).map(v => Number(v) || 0),
+            borderColor: '#7b1e3a',
+            backgroundColor: 'rgba(123,30,58,0.14)',
+            fill: false,
+            pointRadius: 0,
+            tension: 0.3,
+          },
+          {
+            label: 'Lower Bound',
+            data: (chartsPageData.forecast_lower || []).map(v => Number(v) || 0),
+            borderColor: 'rgba(203,108,134,0.45)',
+            backgroundColor: 'rgba(203,108,134,0.18)',
+            fill: '-1',
+            pointRadius: 0,
+            tension: 0.3,
+          }
+        ]
+      },
+      options: forecastOptions
+    });
+  </script>
+</body>
+</html>

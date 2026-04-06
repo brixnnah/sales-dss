@@ -93,6 +93,10 @@
           <span class="nav-icon">ED</span>
           EDA
         </a>
+        <a href="/charts" class="nav-item">
+          <span class="nav-icon">CH</span>
+          Charts
+        </a>
         <a href="{{ url_for('logout') }}" class="nav-item" style="margin-top:auto; color:var(--text3);">
           <span class="nav-icon">⏻</span>
           Logout
@@ -291,6 +295,44 @@
         </div>
       </div>
 
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Price Band Distribution</div>
+              <div class="card-subtitle">Quantity sold across product price ranges</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="priceBandChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Monthly Volume vs SKU Breadth</div>
+              <div class="card-subtitle">Units sold compared with active SKU spread over time</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="volumeSkuChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Category Revenue vs Price Position</div>
+            <div class="card-subtitle">Bubble view of high-revenue and high-volume categories</div>
+          </div>
+          <div class="card-badge">Visualization</div>
+        </div>
+        <div class="chart-wrap-tall">
+          <canvas id="categoryBubbleChart"></canvas>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <div>
@@ -329,19 +371,48 @@
     </main>
   </div>
 
+  <script id="eda-chart-data" type="application/json">{{ {
+    'monthly_dates': monthly_dates,
+    'monthly_revenue': monthly_revenue,
+    'monthly_quantity': monthly_quantity,
+    'monthly_sku_values': monthly_sku_values,
+    'weekday_names': weekday_names,
+    'weekday_values': weekday_values,
+    'top_qty_categories': top_qty_categories,
+    'top_qty_values': top_qty_values,
+    'top_revenue_categories': top_revenue_categories,
+    'top_revenue_values': top_revenue_values,
+    'price_band_labels': price_band_labels,
+    'price_band_values': price_band_values,
+    'category_mix_labels': category_mix_labels,
+    'category_mix_revenue': category_mix_revenue,
+    'category_mix_quantity': category_mix_quantity,
+    'category_mix_avg_price': category_mix_avg_price
+  } | tojson }}</script>
   <script>
-    // @ts-nocheck
-    const monthlyDates = {{ monthly_dates | tojson }};
-    const monthlyRevenue = {{ monthly_revenue | tojson }};
-    const weekdayNames = {{ weekday_names | tojson }};
-    const weekdayValues = {{ weekday_values | tojson }};
-    const topQtyCategories = {{ top_qty_categories | tojson }};
-    const topQtyValues = {{ top_qty_values | tojson }};
-    const topRevenueCategories = {{ top_revenue_categories | tojson }};
-    const topRevenueValues = {{ top_revenue_values | tojson }};
+    const edaChartData = JSON.parse(document.getElementById('eda-chart-data').textContent);
+    const monthlyDates = edaChartData.monthly_dates || [];
+    const monthlyRevenue = edaChartData.monthly_revenue || [];
+    const monthlyQuantity = edaChartData.monthly_quantity || [];
+    const monthlySkuValues = edaChartData.monthly_sku_values || [];
+    const weekdayNames = edaChartData.weekday_names || [];
+    const weekdayValues = edaChartData.weekday_values || [];
+    const topQtyCategories = edaChartData.top_qty_categories || [];
+    const topQtyValues = edaChartData.top_qty_values || [];
+    const topRevenueCategories = edaChartData.top_revenue_categories || [];
+    const topRevenueValues = edaChartData.top_revenue_values || [];
+    const priceBandLabels = edaChartData.price_band_labels || [];
+    const priceBandValues = edaChartData.price_band_values || [];
+    const categoryMixLabels = edaChartData.category_mix_labels || [];
+    const categoryMixRevenue = edaChartData.category_mix_revenue || [];
+    const categoryMixQuantity = edaChartData.category_mix_quantity || [];
+    const categoryMixAvgPrice = edaChartData.category_mix_avg_price || [];
 
     const safeTopQtyValues = (topQtyValues || []).map(v => Number(v) || 0);
     const safeTopRevenueValues = (topRevenueValues || []).map(v => Number(v) || 0);
+    const safeMonthlyQuantity = (monthlyQuantity || []).map(v => Number(v) || 0);
+    const safeMonthlySkuValues = (monthlySkuValues || []).map(v => Number(v) || 0);
+    const safePriceBandValues = (priceBandValues || []).map(v => Number(v) || 0);
 
     const chartOptions = {
       responsive: true,
@@ -421,6 +492,124 @@
           }
         },
         plugins: { legend: { display: false } }
+      }
+    });
+
+    new Chart(document.getElementById('priceBandChart'), {
+      type: 'polarArea',
+      data: {
+        labels: priceBandLabels,
+        datasets: [{
+          data: safePriceBandValues,
+          backgroundColor: [
+            'rgba(123,30,58,0.78)',
+            'rgba(166,58,95,0.76)',
+            'rgba(203,108,134,0.7)',
+            'rgba(143,47,79,0.72)',
+            'rgba(90,16,41,0.8)'
+          ],
+          borderColor: '#ffffff',
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#4b5563', boxWidth: 12, usePointStyle: true }
+          }
+        },
+        scales: {
+          r: {
+            grid: { color: 'rgba(123,30,58,0.12)' },
+            angleLines: { color: 'rgba(123,30,58,0.12)' },
+            ticks: { color: '#4b5563', backdropColor: 'rgba(255,255,255,0.8)' }
+          }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('volumeSkuChart'), {
+      type: 'bar',
+      data: {
+        labels: monthlyDates,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Units Sold',
+            data: safeMonthlyQuantity,
+            backgroundColor: 'rgba(166,58,95,0.7)',
+            borderColor: '#7b1e3a',
+            borderWidth: 1,
+            borderRadius: 7,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: 'Avg Active SKUs',
+            data: safeMonthlySkuValues,
+            borderColor: '#5a1029',
+            backgroundColor: 'rgba(90,16,41,0.12)',
+            tension: 0.35,
+            fill: false,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#4b5563' } } },
+        scales: {
+          x: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' } },
+          y: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' }, beginAtZero: true },
+          y1: { ticks: { color: '#4b5563' }, position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('categoryBubbleChart'), {
+      type: 'bubble',
+      data: {
+        datasets: [{
+          label: 'Categories',
+          data: categoryMixLabels.map((label, index) => ({
+            x: Number(categoryMixAvgPrice[index]) || 0,
+            y: Number(categoryMixRevenue[index]) || 0,
+            r: Math.max(8, Math.min(24, (Number(categoryMixQuantity[index]) || 0) / 3500)),
+            categoryLabel: label,
+          })),
+          backgroundColor: 'rgba(123,30,58,0.48)',
+          borderColor: '#7b1e3a',
+          borderWidth: 1.5,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const point = context.raw;
+                return `${point.categoryLabel}: avg price $${point.x.toFixed(2)}, revenue $${point.y.toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Average Unit Price', color: '#4b5563' },
+            ticks: { color: '#4b5563' },
+            grid: { color: 'rgba(123,30,58,0.12)' }
+          },
+          y: {
+            title: { display: true, text: 'Category Revenue', color: '#4b5563' },
+            ticks: { color: '#4b5563' },
+            grid: { color: 'rgba(123,30,58,0.12)' },
+            beginAtZero: true,
+          }
+        }
       }
     });
   </script>
