@@ -3,10 +3,16 @@
 A practical Decision Support System (DSS) that helps retail decision-makers forecast demand and generate inventory recommendations using real sales data.
 
 ## 1. Problem Statement
-Retail and supermarket managers often struggle with balancing stock availability and overstock risk. This system supports tactical decisions by:
-- analyzing historical sales behavior,
-- forecasting category-level demand,
-- recommending reorder targets using reorder point and safety stock logic.
+Problem Statement
+Retail and supermarket managers frequently face two competing pressures: the risk of running out of stock (which leads to lost sales and dissatisfied customers) and the risk of overstocking (which ties up capital and increases holding costs). Traditional manual approaches — relying on intuition or basic spreadsheets — are inconsistent, time-consuming, and unable to respond to shifting demand patterns.
+SalesIQ is a model-driven Decision Support System (DSS) designed to address these challenges by:
+
+Analysing historical sales behaviour — ingesting and processing past transaction data to identify trends, seasonal patterns, and demand fluctuations across product categories.
+Forecasting category-level demand — applying quantitative forecasting models (Moving Average, Weighted Moving Average, Linear Regression, and Exponential Smoothing) to project future unit sales and expected revenue over configurable horizons (1, 3, or 6 months).
+Recommending reorder targets — using Reorder Point (ROP) and Safety Stock calculations to generate concrete replenishment decisions, accounting for lead time, service level targets, and demand variability.
+
+The system is targeted at store-level and regional managers in retail and supermarket environments. It does not replace managerial judgement — it augments it by surfacing data-driven recommendations through an interactive dashboard and a manager-facing profit and forecast portal.
+
 
 ## 2. Decision-Makers and Decision Context
 Primary decision-makers:
@@ -88,6 +94,13 @@ Cleaning steps implemented in `cleaning.py`:
   - Category selection and forecast horizon
   - Future demand projections with confidence bounds
   - Inventory recommendation (reorder point, safety stock, target stock)
+ 
+  - Charts page (/charts)
+
+  -Dedicated visualization workspace
+  -Combined sales, EDA, and forecast visual analytics in one page
+  -Interactive trend, mix, distribution, bubble, and forecast confidence charts
+   -Filter controls for date range, category, top-N, and forecast horizon
 
 ## 8. Installation and Run
 ### Prerequisites
@@ -136,25 +149,29 @@ tests/
 ```
 
 ## 10. Screenshots
-Add screenshots before submission:
-- Home KPI dashboard
-- EDA dashboard
-- Forecast output + inventory recommendation
+-login screen<img width="1273" height="592" alt="image" src="https://github.com/user-attachments/assets/1b7f1c94-89ce-41b4-b55b-419a209a6bdf" />
+
+- Home KPI dashboard<img width="1093" height="527" alt="image" src="https://github.com/user-attachments/assets/9c4428d8-52b4-4b51-b335-09af2e2e5bea" />
+
+- EDA dashboard <img width="1026" height="337" alt="image" src="https://github.com/user-attachments/assets/0aaaf450-b84c-4dcb-bbdd-2434033b3765" />
+
+- Forecast output + inventory recommendation<img width="1022" height="472" alt="image" src="https://github.com/user-attachments/assets/4643ce90-f86d-4208-9ace-a6c50177e92c" />
+
 
 ## 11. Team Members and Contributions
-Update this section with your actual team details before final submission.
 
-- Student 1: Data collection, cleaning pipeline, EDA preparation
-- Student 2: Forecast model implementation, inventory decision logic
-- Student 3: Flask integration, UI/dashboard, testing and documentation
+-Brianna: I handled  Data collection , cleaning of the data , EDA preparation
+- Brianna  :  I also handled the Forecast model implementation, inventory decision logic
+- David: Flask integration, UI/dashboard, testing and documentation
 
 ## 12. Evaluation, Challenges, and Limitations
 ### Evaluation
-- Functional DSS workflow from raw data to decision outputs
+-  Functional DSS workflow from raw data to decision outputs
 - Forecast and recommendation outputs generated interactively by category
 - Basic automated tests for metric and data-loading logic
 
 ### Challenges
+-large data set is harder to handle .
 - Data quality and outliers in transactional records
 - Balancing model complexity with interpretability for decision-makers
 - Integrating forecasting outputs with practical inventory rules
