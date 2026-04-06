@@ -2,7 +2,12 @@ import pandas as pd
 import pytest
 import app
 
-from app import build_dss_recommendations, compute_daily_metrics, load_data
+from app import (
+    build_dss_recommendations,
+    calculate_inventory_recommendation,
+    compute_daily_metrics,
+    load_data,
+)
 
 
 @pytest.fixture(scope='module')
@@ -42,3 +47,46 @@ def test_load_data_has_order_date(tmp_path):
 
     assert not df.empty
     assert 'order_date' in df.columns
+
+
+def test_inventory_recommendation_invariants(sample_df):
+    rec = calculate_inventory_recommendation(sample_df, 'electronics')
+
+    assert rec is not None
+    assert rec['reorder_point'] >= 0
+    assert rec['safety_stock'] >= 0
+    assert rec['target_stock'] == rec['reorder_point'] + rec['safety_stock']
+
+
+def test_inventory_recommendation_empty_category_returns_none(sample_df):
+    rec = calculate_inventory_recommendation(sample_df, 'non-existent-category')
+    assert rec is None
+
+
+def test_inventory_recommendation_monotonic_with_lead_time_and_service_level(sample_df):
+    base = calculate_inventory_recommendation(
+        sample_df,
+        'electronics',
+        lead_time_days=7,
+        service_level=0.90,
+    )
+    higher_lead_time = calculate_inventory_recommendation(
+        sample_df,
+        'electronics',
+        lead_time_days=21,
+        service_level=0.90,
+    )
+    higher_service_level = calculate_inventory_recommendation(
+        sample_df,
+        'electronics',
+        lead_time_days=7,
+        service_level=0.95,
+    )
+
+    assert base is not None
+    assert higher_lead_time is not None
+    assert higher_service_level is not None
+
+    assert higher_lead_time['reorder_point'] >= base['reorder_point']
+    assert higher_lead_time['target_stock'] >= base['target_stock']
+    assert higher_service_level['safety_stock'] >= base['safety_stock']
