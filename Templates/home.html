@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Supermarket DSS - Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="bg-blob1"></div>
+  <div class="bg-blob2"></div>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-mark">
+          <div class="logo-icon">📊</div>
+          <div>
+            <div class="logo-text">Supermarket</div>
+            <div class="logo-sub">DSS System</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <div class="nav-section">Navigation</div>
+        <a href="/" class="nav-item active">
+          <span class="nav-icon">🏠</span>
+          Home
+        </a>
+        <a href="/dashboard" class="nav-item">
+          <span class="nav-icon">📈</span>
+          Dashboard
+        </a>
+        <a href="/decision" class="nav-item">
+          <span class="nav-icon">🎯</span>
+          Decision Engine
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar">👤</div>
+          <div>
+            <div class="user-name">DSS User</div>
+            <div class="user-role">Manager</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Hero Section -->
+      <div class="card" style="background: linear-gradient(135deg, rgba(79,143,255,0.1), rgba(124,92,255,0.1)); border: 1px solid rgba(79,143,255,0.2); margin-bottom: 32px;">
+        <div style="text-align: center; padding: 40px 20px;">
+          <h1 style="font-family: var(--font-display); font-size: 42px; font-weight: 800; color: var(--text); margin: 0 0 16px; letter-spacing: -1px;">
+            Sales Forecasting & Inventory Optimization DSS
+          </h1>
+          <p style="font-size: 18px; color: var(--text2); margin: 0 0 32px; line-height: 1.6; max-width: 600px; margin-left: auto; margin-right: auto;">
+            This intelligent system helps supermarket managers make data-driven decisions. Filter data by date, status, and product, then review AI-powered reorder recommendations.
+          </p>
+          <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+            <a href="/dashboard" class="btn btn-primary" style="padding: 12px 24px; font-size: 16px;">
+              <span>📊</span> Open Dashboard
+            </a>
+            <a href="/decision" class="btn btn-ghost" style="padding: 12px 24px; font-size: 16px;">
+              <span>🎯</span> Decision Engine
+            </a>
+          </div>
+        </div>
+        <div style="padding: 0 20px 20px;">
+          <img src="https://images.unsplash.com/photo-1542831371-d531d36971e6?auto=format&fit=crop&w=1000&q=80"
+               alt="Supermarket shelves"
+               style="width: 100%; height: 300px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);" />
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="kpi-grid" style="margin-bottom: 32px;">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Total Transactions</div>
+          <div class="kpi-value">{{ total_transactions }}</div>
+          <div class="kpi-icon">📊</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value">${{ '{:,.0f}'.format(total_revenue) }}</div>
+          <div class="kpi-icon">💰</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Total Profit</div>
+          <div class="kpi-value">${{ '{:,.0f}'.format(total_profit) }}</div>
+          <div class="kpi-icon">📈</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Data Points</div>
+          <div class="kpi-value">{{ data_points }}</div>
+          <div class="kpi-icon">📋</div>
+        </div>
+      </div>
+
+      <!-- Leading Products -->
+      <div class="row row-half">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Leading Products by Units</div>
+              <div class="card-subtitle">Most popular products in your inventory</div>
+            </div>
+            <div class="card-badge">Top Sellers</div>
+          </div>
+          <div style="padding: 0;">
+            {% for i in range(top_qty_products|length) %}
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent);"></div>
+                  <span style="color: var(--text); font-weight: 500;">{{ top_qty_products[i] }}</span>
+                </div>
+                <span style="color: var(--accent); font-weight: 700;">{{ '{:,.0f}'.format(top_qty_values[i]) }} units</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">DSS Reorder Recommendations</div>
+              <div class="card-subtitle">AI-powered inventory optimization</div>
+            </div>
+            <div class="card-badge">Smart Orders</div>
+          </div>
+          <div style="padding: 0;">
+            {% for r in dss_recommendations %}
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent3);"></div>
+                  <span style="color: var(--text); font-weight: 500;">{{ r.product }}</span>
+                </div>
+                <div style="text-align: right;">
+                  <div style="color: var(--accent); font-weight: 700;">{{ '{:,.0f}'.format(r.recommended_reorder) }} units</div>
+                  <div style="color: var(--text3); font-size: 12px;">avg: {{ '{:,.0f}'.format(r.monthly_average) }}/month</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Section -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">System Features</div>
+            <div class="card-subtitle">Everything you need for data-driven supermarket management</div>
+          </div>
+        </div>
+        <div class="row row-3" style="margin: 0; padding: 0;">
+          <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
+            <div style="font-weight: 600; color: var(--text); margin-bottom: 8px;">Advanced Analytics</div>
+            <div style="color: var(--text2); font-size: 14px;">Real-time insights into sales performance and trends</div>
+          </div>
+          <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 32px; margin-bottom: 12px;">🎯</div>
+            <div style="font-weight: 600; color: var(--text); margin-bottom: 8px;">Decision Engine</div>
+            <div style="color: var(--text2); font-size: 14px;">AI-powered recommendations for optimal inventory levels</div>
+          </div>
+          <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 32px; margin-bottom: 12px;">📈</div>
+            <div style="font-weight: 600; color: var(--text); margin-bottom: 8px;">Forecasting</div>
+            <div style="color: var(--text2); font-size: 14px;">Predict future demand and optimize stock levels</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

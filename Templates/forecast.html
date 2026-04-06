@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sales Forecast</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="bg-blob1"></div>
+  <div class="bg-blob2"></div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-mark">
+          <div class="logo-icon">📊</div>
+          <div>
+            <div class="logo-text">Supermarket</div>
+            <div class="logo-sub">DSS System</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <div class="nav-section">Navigation</div>
+        <a href="/" class="nav-item">
+          <span class="nav-icon">🏠</span>
+          Home
+        </a>
+        <a href="/forecast" class="nav-item active">
+          <span class="nav-icon">📈</span>
+          Forecast
+        </a>
+        <a href="{{ url_for('logout') }}" class="nav-item" style="color:var(--text3);">
+          <span class="nav-icon">⏻</span>
+          Logout
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Sales Forecast</div>
+          <div class="page-subtitle">Demand forecast and inventory recommendation</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="date-chip">
+            <span>📅</span>
+            {{ current_date or '' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Select Category</div>
+            <div class="card-subtitle">Forecast sales demand for the chosen category</div>
+          </div>
+        </div>
+        <form method="get" class="input-group">
+          <div class="field">
+            <label>Category</label>
+            <select name="category">
+              {% for category in categories %}
+                <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>{{ category }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Forecast Days</label>
+            <input type="number" name="days" min="7" max="90" value="{{ days }}" />
+          </div>
+          <div class="field" style="align-self: end;">
+            <button type="submit" class="btn btn-primary">Run Forecast</button>
+          </div>
+        </form>
+      </div>
+
+      {% if error %}
+        <div class="alert danger">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <div class="alert-title">Error</div>
+            <div class="alert-msg">{{ error }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if recommendation %}
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Inventory Recommendation</div>
+              <div class="card-subtitle">Reorder point and safety stock estimate</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Avg Monthly Demand</th>
+                <th>Lead Time Days</th>
+                <th>Reorder Point</th>
+                <th>Safety Stock</th>
+                <th>Target Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ recommendation.category }}</td>
+                <td>{{ recommendation.avg_monthly_demand }}</td>
+                <td>{{ recommendation.lead_time_days }}</td>
+                <td>{{ recommendation.reorder_point }}</td>
+                <td>{{ recommendation.safety_stock }}</td>
+                <td>{{ recommendation.target_stock }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if forecast %}
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">30-Day Demand Forecast</div>
+              <div class="card-subtitle">Daily sales forecast with confidence bounds</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Forecast</th>
+                <th>Lower</th>
+                <th>Upper</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in forecast %}
+                <tr>
+                  <td>{{ row.date }}</td>
+                  <td>{{ row.forecast | round(1) }}</td>
+                  <td>{{ row.lower_bound | round(1) }}</td>
+                  <td>{{ row.upper_bound | round(1) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </main>
+  </div>
+</body>
+</html>

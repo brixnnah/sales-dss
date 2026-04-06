@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sales EDA</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @media print {
+      /* Hide navigation chrome */
+      .sidebar, .bg-blob1, .bg-blob2, .topbar-actions .btn-ghost,
+      body::before, .nav, .logo, .sidebar-footer { display: none !important; }
+
+      /* Full-width content, white background */
+      body { background: #fff !important; color: #111 !important; }
+      .main { margin-left: 0 !important; padding: 24px !important; }
+      .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; }
+      .row-2, .row-3 { grid-template-columns: 1fr 1fr !important; page-break-inside: avoid; }
+
+      /* Clean card borders */
+      .card {
+        border: 1px solid #d1d5db !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        page-break-inside: avoid;
+        margin-bottom: 16px !important;
+      }
+      .kpi-card { border: 1px solid #d1d5db !important; box-shadow: none !important; background: #f9fafb !important; }
+      .kpi-value { color: #111 !important; }
+      .kpi-label { color: #374151 !important; }
+      .card-title, .card-subtitle, .page-title, .page-subtitle { color: #111 !important; }
+      .card-badge { background: #e5e7eb !important; color: #374151 !important; border: 1px solid #d1d5db !important; }
+
+      /* Table readability */
+      table { border-collapse: collapse !important; width: 100% !important; }
+      th, td { border: 1px solid #d1d5db !important; color: #111 !important; padding: 8px 12px !important; }
+      thead { background: #f3f4f6 !important; }
+
+      /* Keep chart canvases visible */
+      canvas { max-width: 100% !important; }
+
+      /* Report header inserted at top of print */
+      .print-header { display: flex !important; }
+
+      /* Hide print button itself */
+      .print-btn-wrap { display: none !important; }
+    }
+
+    /* Only shown in print */
+    .print-header {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #111;
+    }
+    .print-header-title { font-size: 20px; font-weight: 800; }
+    .print-header-meta { font-size: 12px; color: #374151; }
+  </style>
+</head>
+<body>
+  <div class="bg-blob1"></div>
+  <div class="bg-blob2"></div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-mark">
+          <div class="logo-icon">📊</div>
+          <div>
+            <div class="logo-text">Supermarket</div>
+            <div class="logo-sub">DSS System</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <div class="nav-section">Navigation</div>
+        <a href="/" class="nav-item">
+          <span class="nav-icon">🏠</span>
+          Home
+        </a>
+        <a href="/forecast" class="nav-item">
+          <span class="nav-icon">📈</span>
+          Forecast
+        </a>
+        <a href="/eda" class="nav-item active">
+          <span class="nav-icon">🧪</span>
+          EDA
+        </a>
+        <a href="{{ url_for('logout') }}" class="nav-item" style="margin-top:auto; color:var(--text3);">
+          <span class="nav-icon">⏻</span>
+          Logout
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <!-- Print-only report header -->
+      <div class="print-header">
+        <div>
+          <div class="print-header-title">Sales Forecasting &amp; Inventory Optimization DSS</div>
+          <div class="print-header-meta">Exploratory Data Analysis Report &mdash; {{ date_range }}</div>
+        </div>
+        <div class="print-header-meta">Generated: {{ current_date }}</div>
+      </div>
+
+      <div class="topbar">
+        <div>
+          <div class="page-title">Exploratory Data Analysis</div>
+          <div class="page-subtitle">Statistical profile and demand behavior for decision support</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="date-chip">
+            <span>📅</span>
+            {{ current_date or '' }}
+          </div>
+          <div class="print-btn-wrap">
+            <button class="btn btn-ghost" onclick="window.print()">
+              <span>🖨️</span> Print / Export
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="alert danger">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <div class="alert-title">Error</div>
+            <div class="alert-msg">{{ error }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Filters</div>
+            <div class="card-subtitle">Review a specific date range</div>
+          </div>
+        </div>
+        <form method="get" class="input-group">
+          <div class="field">
+            <label>Start Date</label>
+            <input type="date" name="start_date" value="{{ start_date or '' }}" />
+          </div>
+          <div class="field">
+            <label>End Date</label>
+            <input type="date" name="end_date" value="{{ end_date or '' }}" />
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <select name="category">
+              <option value="" {% if not selected_category %}selected{% endif %}>All Categories</option>
+              {% for c in categories %}
+                <option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field" style="align-self: end;">
+            <button type="submit" class="btn btn-primary">Apply</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="kpi-grid" style="margin-top: 20px;">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Observations</div>
+          <div class="kpi-value">{{ total_rows }}</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Active Categories</div>
+          <div class="kpi-value">{{ total_categories }}</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Gross Revenue</div>
+          <div class="kpi-value">${{ '{:,.0f}'.format(total_revenue) }}</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Mean Unit Price</div>
+          <div class="kpi-value">${{ '{:,.2f}'.format(avg_order_value) }}</div>
+        </div>
+      </div>
+
+      <div class="row row-3">
+        <div class="card">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <div>
+              <div class="card-title">Price Distribution Summary</div>
+            </div>
+          </div>
+          <div style="font-size: 14px; color: var(--text2); line-height: 1.8;">
+            <div>Min: <strong>${{ '{:,.2f}'.format(min_price) }}</strong></div>
+            <div>Median: <strong>${{ '{:,.2f}'.format(median_price) }}</strong></div>
+            <div>Max: <strong>${{ '{:,.2f}'.format(max_price) }}</strong></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <div>
+              <div class="card-title">Month-over-Month Revenue Change</div>
+            </div>
+          </div>
+          <div style="font-size: 28px; font-family: var(--font-display); font-weight: 800; color: var(--text);">
+            {{ '{:+.2f}'.format(monthly_growth_pct) }}%
+          </div>
+          <div style="font-size: 12px; color: var(--text3); margin-top: 4px;">
+            Latest month relative to the previous month
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <div>
+              <div class="card-title">Peak Demand Weekday</div>
+            </div>
+          </div>
+          <div style="font-size: 24px; font-family: var(--font-display); font-weight: 800; color: var(--text);">
+            {{ busiest_weekday }}
+          </div>
+          <div style="font-size: 12px; color: var(--text3); margin-top: 4px;">
+            Highest total quantity sold by weekday
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px; border-left: 4px solid #2b7fff;">
+        <div class="card-header" style="margin-bottom: 10px;">
+          <div>
+            <div class="card-title">Analytical Note</div>
+            <div class="card-subtitle">Interpretation guide for reviewers and decision-makers</div>
+          </div>
+        </div>
+        <div style="color: var(--text2); font-size: 14px; line-height: 1.7;">
+          This EDA view summarizes demand behavior, concentration risk, and recent trend movement.
+          Use these indicators to justify inventory policy updates before running the forecasting module.
+          For stable categories with positive month-over-month change, prioritize proactive replenishment.
+        </div>
+      </div>
+
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Monthly Revenue Trend</div>
+              <div class="card-subtitle">Date range: {{ date_range }}</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="monthlyRevenue"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Demand by Weekday</div>
+              <div class="card-subtitle">Units sold by day of week</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="weekdayDemand"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Top Categories by Quantity</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="topQty"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Top Categories by Revenue</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="topRevenue"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">EDA Decision Insights</div>
+            <div class="card-subtitle">How this analysis supports management decisions</div>
+          </div>
+          <div class="card-badge">DSS Context</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Insight</th>
+              <th>Current Signal</th>
+              <th>Decision Use</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Demand concentration</td>
+              <td>Top categories show majority of units and revenue.</td>
+              <td>Prioritize replenishment budget on top categories first.</td>
+            </tr>
+            <tr>
+              <td>Temporal demand pattern</td>
+              <td>Highest activity appears on <strong>{{ busiest_weekday }}</strong>.</td>
+              <td>Schedule staffing and stock movement before peak days.</td>
+            </tr>
+            <tr>
+              <td>Recent revenue momentum</td>
+              <td>Latest monthly change: <strong>{{ '{:+.2f}'.format(monthly_growth_pct) }}%</strong>.</td>
+              <td>Increase or reduce reorder aggressiveness for next cycle.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // @ts-nocheck
+    const monthlyDates = {{ monthly_dates | tojson }};
+    const monthlyRevenue = {{ monthly_revenue | tojson }};
+    const weekdayNames = {{ weekday_names | tojson }};
+    const weekdayValues = {{ weekday_values | tojson }};
+    const topQtyCategories = {{ top_qty_categories | tojson }};
+    const topQtyValues = {{ top_qty_values | tojson }};
+    const topRevenueCategories = {{ top_revenue_categories | tojson }};
+    const topRevenueValues = {{ top_revenue_values | tojson }};
+
+    const chartOptions = {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#4b5563' } } },
+      scales: {
+        x: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(43,127,255,0.12)' } },
+        y: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(43,127,255,0.12)' } }
+      }
+    };
+
+    new Chart(document.getElementById('monthlyRevenue'), {
+      type: 'line',
+      data: {
+        labels: monthlyDates,
+        datasets: [{ label: 'Revenue', data: monthlyRevenue, borderColor: '#2b7fff', backgroundColor: 'rgba(43,127,255,0.16)', fill: true, tension: 0.35 }]
+      },
+      options: chartOptions
+    });
+
+    new Chart(document.getElementById('weekdayDemand'), {
+      type: 'bar',
+      data: {
+        labels: weekdayNames,
+        datasets: [{ label: 'Units', data: weekdayValues, backgroundColor: '#1f9d8b', borderRadius: 6 }]
+      },
+      options: { ...chartOptions, plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById('topQty'), {
+      type: 'bar',
+      data: {
+        labels: topQtyCategories,
+        datasets: [{ label: 'Units', data: topQtyValues, backgroundColor: '#2563eb', borderRadius: 6 }]
+      },
+      options: { ...chartOptions, indexAxis: 'y', plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById('topRevenue'), {
+      type: 'bar',
+      data: {
+        labels: topRevenueCategories,
+        datasets: [{ label: 'Revenue', data: topRevenueValues, backgroundColor: '#0f766e', borderRadius: 6 }]
+      },
+      options: { ...chartOptions, indexAxis: 'y', plugins: { legend: { display: false } } }
+    });
+  </script>
+</body>
+</html>

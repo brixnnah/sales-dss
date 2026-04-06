@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sales Performance Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="bg-blob1"></div>
+  <div class="bg-blob2"></div>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-mark">
+          <div class="logo-icon">📊</div>
+          <div>
+            <div class="logo-text">Supermarket</div>
+            <div class="logo-sub">DSS System</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <div class="nav-section">Navigation</div>
+        <a href="/" class="nav-item active">
+          <span class="nav-icon">🏠</span>
+          Home
+        </a>
+        <a href="/forecast" class="nav-item">
+          <span class="nav-icon">📈</span>
+          Forecast
+        </a>
+        <a href="/eda" class="nav-item">
+          <span class="nav-icon">📊</span>
+          EDA
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar">👤</div>
+          <div style="flex:1;">
+            <div class="user-name">{{ current_user.id }}</div>
+            <div class="user-role">{{ current_user.role }}</div>
+          </div>
+          <a href="{{ url_for('logout') }}" title="Logout"
+             style="color:var(--text3); font-size:18px; text-decoration:none; margin-left:6px;"
+             onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text3)'">⏻</a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div>
+          <div class="page-title">Sales Performance Dashboard</div>
+          <div class="page-subtitle">Track revenue, profit, and product popularity from your CSV data</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="date-chip">
+            <span>📅</span>
+            {{ current_date or '2024' }}
+          </div>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="alert danger">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <div class="alert-title">Error</div>
+            <div class="alert-msg">{{ error }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Total Transactions</div>
+          <div class="kpi-value">{{ total_transactions }}</div>
+          <div class="kpi-icon">📊</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value">${{ '{:,.0f}'.format(total_revenue) }}</div>
+          <div class="kpi-icon">💰</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Total Profit</div>
+          <div class="kpi-value">${{ '{:,.0f}'.format(total_profit) }}</div>
+          <div class="kpi-icon">📈</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Avg Order Value</div>
+          <div class="kpi-value">${{ '{:,.0f}'.format(total_revenue / total_transactions if total_transactions > 0 else 0) }}</div>
+          <div class="kpi-icon">🛒
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Filters & Settings</div>
+            <div class="card-subtitle">Customize your dashboard view</div>
+          </div>
+        </div>
+        <form method="get" class="input-group">
+          <div class="field">
+            <label>Start Date</label>
+            <input type="date" name="start_date" value="{{ start_date or '' }}" />
+          </div>
+          <div class="field">
+            <label>End Date</label>
+            <input type="date" name="end_date" value="{{ end_date or '' }}" />
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select name="status" multiple>
+              {% for s in status_options %}
+                <option value="{{ s }}" {% if s in selected_status %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Top N Products</label>
+            <input type="number" name="top_n" min="1" max="20" value="{{ top_n or 10 }}" />
+          </div>
+          <div class="field">
+            <label>Reorder Buffer (Months)</label>
+            <input type="number" name="buffer_months" min="1" max="12" value="{{ buffer_months or 2 }}" />
+          </div>
+          <div class="field" style="align-self: end;">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Revenue Over Time</div>
+              <div class="card-subtitle">Monthly revenue trends</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Profit Over Time</div>
+              <div class="card-subtitle">Monthly profit trends</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="profitChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Charts Row -->
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Top Products by Units</div>
+              <div class="card-subtitle">Most popular products by quantity sold</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="topQtyChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Top Products by Revenue</div>
+              <div class="card-subtitle">Highest revenue generating products</div>
+            </div>
+          </div>
+          <div class="chart-wrap-tall">
+            <canvas id="topRevenueChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- DSS Recommendations -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Decision Support Recommendations</div>
+            <div class="card-subtitle">AI-powered inventory optimization suggestions</div>
+          </div>
+          <div class="card-badge">DSS Engine</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Product Category</th>
+              <th>Avg Monthly Units</th>
+              <th>Recommended Reorder</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rec in dss_recommendations %}
+              <tr>
+                <td>{{ rec.product }}</td>
+                <td>{{ '{:,.0f}'.format(rec.monthly_average) }}</td>
+                <td>{{ '{:,.0f}'.format(rec.recommended_reorder) }}</td>
+                <td>
+                  {% if rec.recommended_reorder > rec.monthly_average * 1.5 %}
+                    <span class="status-pill low">🔴 Low Stock</span>
+                  {% elif rec.recommended_reorder > rec.monthly_average * 1.2 %}
+                    <span class="status-pill med">🟡 Monitor</span>
+                  {% else %}
+                    <span class="status-pill ok">🟢 Optimal</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // @ts-nocheck
+    // Data variables
+    var months = {{ months | tojson }};
+    var revenue_values = {{ revenue_values | tojson }};
+    var profit_values = {{ profit_values | tojson }};
+    var top_qty_products = {{ top_qty_products | tojson }};
+    var top_qty_values = {{ top_qty_values | tojson }};
+    var top_revenue_products = {{ top_revenue_products | tojson }};
+    var top_revenue_values = {{ top_revenue_values | tojson }};
+
+    // Chart.js configurations with dark theme
+    const chartOptions = {
+      responsive: true,
+      plugins: {
+        legend: {
+          labels: { color: '#8b90b0' }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          ticks: { color: '#8b90b0' }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          ticks: { color: '#8b90b0' }
+        }
+      }
+    };
+
+    const revenueChart = new Chart(document.getElementById('revenueChart'), {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Revenue',
+          data: revenue_values,
+          borderColor: '#4f8fff',
+          backgroundColor: 'rgba(79,143,255,0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: chartOptions
+    });
+
+    const profitChart = new Chart(document.getElementById('profitChart'), {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Profit',
+          data: profit_values,
+          borderColor: '#00e5b0',
+          backgroundColor: 'rgba(0,229,176,0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: chartOptions
+    });
+
+    const topQtyChart = new Chart(document.getElementById('topQtyChart'), {
+      type: 'bar',
+      data: {
+        labels: top_qty_products,
+        datasets: [{
+          label: 'Units Sold',
+          data: top_qty_values,
+          backgroundColor: '#7c5cff',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        ...chartOptions,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    const topRevenueChart = new Chart(document.getElementById('topRevenueChart'), {
+      type: 'bar',
+      data: {
+        labels: top_revenue_products,
+        datasets: [{
+          label: 'Revenue',
+          data: top_revenue_values,
+          backgroundColor: '#ff6b6b',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        ...chartOptions,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
