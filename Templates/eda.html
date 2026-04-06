@@ -71,7 +71,7 @@
     <aside class="sidebar">
       <div class="logo">
         <div class="logo-mark">
-          <div class="logo-icon">📊</div>
+          <div class="logo-icon">DS</div>
           <div>
             <div class="logo-text">Supermarket</div>
             <div class="logo-sub">DSS System</div>
@@ -82,15 +82,15 @@
       <nav class="nav">
         <div class="nav-section">Navigation</div>
         <a href="/" class="nav-item">
-          <span class="nav-icon">🏠</span>
+          <span class="nav-icon">HM</span>
           Home
         </a>
         <a href="/forecast" class="nav-item">
-          <span class="nav-icon">📈</span>
+          <span class="nav-icon">FC</span>
           Forecast
         </a>
         <a href="/eda" class="nav-item active">
-          <span class="nav-icon">🧪</span>
+          <span class="nav-icon">ED</span>
           EDA
         </a>
         <a href="{{ url_for('logout') }}" class="nav-item" style="margin-top:auto; color:var(--text3);">
@@ -117,12 +117,12 @@
         </div>
         <div class="topbar-actions">
           <div class="date-chip">
-            <span>📅</span>
-            {{ current_date or '' }}
+            <span>Updated</span>
+            {{ current_date or 'Today' }}
           </div>
           <div class="print-btn-wrap">
             <button class="btn btn-ghost" onclick="window.print()">
-              <span>🖨️</span> Print / Export
+              <span>Export</span> Print
             </button>
           </div>
         </div>
@@ -130,7 +130,7 @@
 
       {% if error %}
         <div class="alert danger">
-          <span class="alert-icon">⚠️</span>
+          <span class="alert-icon">!</span>
           <div>
             <div class="alert-title">Error</div>
             <div class="alert-msg">{{ error }}</div>
@@ -229,7 +229,7 @@
         </div>
       </div>
 
-      <div class="card" style="margin-bottom: 20px; border-left: 4px solid #2b7fff;">
+      <div class="card" style="margin-bottom: 20px; border-left: 4px solid #7b1e3a;">
         <div class="card-header" style="margin-bottom: 10px;">
           <div>
             <div class="card-title">Analytical Note</div>
@@ -344,8 +344,8 @@
       responsive: true,
       plugins: { legend: { labels: { color: '#4b5563' } } },
       scales: {
-        x: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(43,127,255,0.12)' } },
-        y: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(43,127,255,0.12)' } }
+        x: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' } },
+        y: { ticks: { color: '#4b5563' }, grid: { color: 'rgba(123,30,58,0.12)' } }
       }
     };
 
@@ -353,7 +353,7 @@
       type: 'line',
       data: {
         labels: monthlyDates,
-        datasets: [{ label: 'Revenue', data: monthlyRevenue, borderColor: '#2b7fff', backgroundColor: 'rgba(43,127,255,0.16)', fill: true, tension: 0.35 }]
+        datasets: [{ label: 'Revenue', data: monthlyRevenue, borderColor: '#7b1e3a', backgroundColor: 'rgba(123,30,58,0.16)', fill: true, tension: 0.35 }]
       },
       options: chartOptions
     });
@@ -362,7 +362,7 @@
       type: 'bar',
       data: {
         labels: weekdayNames,
-        datasets: [{ label: 'Units', data: weekdayValues, backgroundColor: '#1f9d8b', borderRadius: 6 }]
+        datasets: [{ label: 'Units', data: weekdayValues, backgroundColor: '#a63a5f', borderRadius: 6 }]
       },
       options: { ...chartOptions, plugins: { legend: { display: false } } }
     });
@@ -371,7 +371,7 @@
       type: 'bar',
       data: {
         labels: topQtyCategories,
-        datasets: [{ label: 'Units', data: topQtyValues, backgroundColor: '#2563eb', borderRadius: 6 }]
+        datasets: [{ label: 'Units', data: topQtyValues, backgroundColor: '#8f2f4f', borderRadius: 6 }]
       },
       options: { ...chartOptions, indexAxis: 'y', plugins: { legend: { display: false } } }
     });
@@ -380,7 +380,7 @@
       type: 'bar',
       data: {
         labels: topRevenueCategories,
-        datasets: [{ label: 'Revenue', data: topRevenueValues, backgroundColor: '#0f766e', borderRadius: 6 }]
+        datasets: [{ label: 'Revenue', data: topRevenueValues, backgroundColor: '#cb6c86', borderRadius: 6 }]
       },
       options: { ...chartOptions, indexAxis: 'y', plugins: { legend: { display: false } } }
     });

@@ -8,19 +8,122 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .login-shell {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      padding: 24px;
+      background-image: url('https://images.unsplash.com/photo-1601598851547-4302969d0614?auto=format&fit=crop&w=2000&q=80');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .login-shell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(155deg, rgba(43, 20, 28, 0.56), rgba(123, 30, 58, 0.5));
+      pointer-events: none;
+    }
+
+    .login-layout {
+      width: 100%;
+      max-width: 480px;
+      display: block;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.14);
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(12px);
+    }
+
+    .login-image-pane {
+      display: none;
+    }
+
+    .login-image-pane img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .login-image-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(160deg, rgba(43, 20, 28, 0.22), rgba(123, 30, 58, 0.62));
+    }
+
+    .login-image-caption {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 24px;
+      color: #fff;
+    }
+
+    .login-image-title {
+      font-family: var(--font-display);
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .login-image-sub {
+      font-size: 14px;
+      opacity: 0.96;
+      max-width: 310px;
+      line-height: 1.5;
+    }
+
+    .login-form-pane {
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    @media (max-width: 900px) {
+      .login-layout {
+        max-width: 100%;
+      }
+
+      .login-image-title {
+        font-size: 22px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="bg-blob1"></div>
   <div class="bg-blob2"></div>
 
-  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
-    <div style="width:100%; max-width:420px;">
+  <div class="login-shell">
+    <div class="login-layout">
+      <div class="login-image-pane">
+        <img src="https://images.unsplash.com/photo-1601598851547-4302969d0614?auto=format&fit=crop&w=1400&q=80" alt="Supermarket fresh produce section" />
+        <div class="login-image-overlay"></div>
+        <div class="login-image-caption">
+          <div class="login-image-title">DSS System</div>
+          <div class="login-image-sub">Forecast demand, optimize stock, and make better inventory decisions from one secure dashboard.</div>
+        </div>
+      </div>
+
+      <div class="login-form-pane">
 
       <!-- Logo / brand -->
       <div style="text-align:center; margin-bottom:32px;">
         <div style="width:56px; height:56px; background:linear-gradient(135deg,var(--accent),var(--accent2));
                     border-radius:16px; display:inline-flex; align-items:center; justify-content:center;
-                    font-size:28px; margin-bottom:16px;">📊</div>
+                    font-size:16px; font-weight:800; letter-spacing:0.8px; margin-bottom:16px; color:#fff;">DS</div>
         <div style="font-family:var(--font-display); font-size:28px; font-weight:800;
                     color:var(--text); letter-spacing:-0.5px;">Supermarket DSS</div>
         <div style="font-size:14px; color:var(--text3); margin-top:4px;">
@@ -29,7 +132,8 @@
       </div>
 
       <!-- Card -->
-      <div class="card" style="padding:36px;">
+      <div class="card" style="padding:30px; background:rgba(255,255,255,0.9);">
+
         <div style="font-family:var(--font-display); font-size:20px; font-weight:700;
                     color:var(--text); margin-bottom:6px;">Sign in</div>
         <div style="font-size:13px; color:var(--text3); margin-bottom:28px;">
@@ -40,7 +144,7 @@
           <div style="background:rgba(255,45,144,0.08); border:1px solid rgba(255,45,144,0.25);
                       border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:20px;
                       font-size:13px; color:#c0185e; display:flex; align-items:center; gap:8px;">
-            <span>⚠️</span> {{ error }}
+            <span style="display:inline-flex; width:18px; height:18px; border-radius:50%; border:1px solid rgba(192,24,94,0.35); align-items:center; justify-content:center; font-size:11px; font-weight:700;">!</span> {{ error }}
           </div>
         {% endif %}
 
@@ -85,6 +189,7 @@
         </div>
       </div>
 
+      </div>
     </div>
   </div>
 </body>

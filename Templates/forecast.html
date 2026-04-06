@@ -17,7 +17,7 @@
     <aside class="sidebar">
       <div class="logo">
         <div class="logo-mark">
-          <div class="logo-icon">📊</div>
+          <div class="logo-icon">DS</div>
           <div>
             <div class="logo-text">Supermarket</div>
             <div class="logo-sub">DSS System</div>
@@ -28,11 +28,11 @@
       <nav class="nav">
         <div class="nav-section">Navigation</div>
         <a href="/" class="nav-item">
-          <span class="nav-icon">🏠</span>
+          <span class="nav-icon">HM</span>
           Home
         </a>
         <a href="/forecast" class="nav-item active">
-          <span class="nav-icon">📈</span>
+          <span class="nav-icon">FC</span>
           Forecast
         </a>
         <a href="{{ url_for('logout') }}" class="nav-item" style="color:var(--text3);">
@@ -50,8 +50,8 @@
         </div>
         <div class="topbar-actions">
           <div class="date-chip">
-            <span>📅</span>
-            {{ current_date or '' }}
+            <span>Updated</span>
+            {{ current_date or 'Today' }}
           </div>
         </div>
       </div>
@@ -84,7 +84,7 @@
 
       {% if error %}
         <div class="alert danger">
-          <span class="alert-icon">⚠️</span>
+          <span class="alert-icon">!</span>
           <div>
             <div class="alert-title">Error</div>
             <div class="alert-msg">{{ error }}</div>

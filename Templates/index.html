@@ -19,7 +19,7 @@
     <aside class="sidebar">
       <div class="logo">
         <div class="logo-mark">
-          <div class="logo-icon">📊</div>
+          <div class="logo-icon">DS</div>
           <div>
             <div class="logo-text">Supermarket</div>
             <div class="logo-sub">DSS System</div>
@@ -30,22 +30,22 @@
       <nav class="nav">
         <div class="nav-section">Navigation</div>
         <a href="/" class="nav-item active">
-          <span class="nav-icon">🏠</span>
+          <span class="nav-icon">HM</span>
           Home
         </a>
         <a href="/forecast" class="nav-item">
-          <span class="nav-icon">📈</span>
+          <span class="nav-icon">FC</span>
           Forecast
         </a>
         <a href="/eda" class="nav-item">
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon">ED</span>
           EDA
         </a>
       </nav>
 
       <div class="sidebar-footer">
         <div class="user-chip">
-          <div class="user-avatar">👤</div>
+          <div class="user-avatar">{{ current_user.id[:1] | upper }}</div>
           <div style="flex:1;">
             <div class="user-name">{{ current_user.id }}</div>
             <div class="user-role">{{ current_user.role }}</div>
@@ -63,19 +63,19 @@
       <div class="topbar">
         <div>
           <div class="page-title">Sales Performance Dashboard</div>
-          <div class="page-subtitle">Track revenue, profit, and product popularity from your CSV data</div>
+          <div class="page-subtitle">Welcome back, {{ current_user.id }}. Track revenue, profit, and product popularity in one place.</div>
         </div>
         <div class="topbar-actions">
           <div class="date-chip">
-            <span>📅</span>
-            {{ current_date or '2024' }}
+            <span>Updated</span>
+            {{ current_date or 'Today' }}
           </div>
         </div>
       </div>
 
       {% if error %}
         <div class="alert danger">
-          <span class="alert-icon">⚠️</span>
+          <span class="alert-icon">!</span>
           <div>
             <div class="alert-title">Error</div>
             <div class="alert-msg">{{ error }}</div>
@@ -88,23 +88,22 @@
         <div class="kpi-card blue">
           <div class="kpi-label">Total Transactions</div>
           <div class="kpi-value">{{ total_transactions }}</div>
-          <div class="kpi-icon">📊</div>
+          <div class="kpi-icon">TX</div>
         </div>
         <div class="kpi-card purple">
           <div class="kpi-label">Total Revenue</div>
           <div class="kpi-value">${{ '{:,.0f}'.format(total_revenue) }}</div>
-          <div class="kpi-icon">💰</div>
+          <div class="kpi-icon">RV</div>
         </div>
         <div class="kpi-card green">
           <div class="kpi-label">Total Profit</div>
           <div class="kpi-value">${{ '{:,.0f}'.format(total_profit) }}</div>
-          <div class="kpi-icon">📈</div>
+          <div class="kpi-icon">PF</div>
         </div>
         <div class="kpi-card red">
           <div class="kpi-label">Avg Order Value</div>
           <div class="kpi-value">${{ '{:,.0f}'.format(total_revenue / total_transactions if total_transactions > 0 else 0) }}</div>
-          <div class="kpi-icon">🛒
-          </div>
+          <div class="kpi-icon">AO</div>
         </div>
       </div>
 
@@ -206,7 +205,7 @@
         <div class="card-header">
           <div>
             <div class="card-title">Decision Support Recommendations</div>
-            <div class="card-subtitle">AI-powered inventory optimization suggestions</div>
+            <div class="card-subtitle">Inventory optimization suggestions</div>
           </div>
           <div class="card-badge">DSS Engine</div>
         </div>
@@ -227,11 +226,11 @@
                 <td>{{ '{:,.0f}'.format(rec.recommended_reorder) }}</td>
                 <td>
                   {% if rec.recommended_reorder > rec.monthly_average * 1.5 %}
-                    <span class="status-pill low">🔴 Low Stock</span>
+                    <span class="status-pill low">Low Stock</span>
                   {% elif rec.recommended_reorder > rec.monthly_average * 1.2 %}
-                    <span class="status-pill med">🟡 Monitor</span>
+                    <span class="status-pill med">Monitor</span>
                   {% else %}
-                    <span class="status-pill ok">🟢 Optimal</span>
+                    <span class="status-pill ok">Optimal</span>
                   {% endif %}
                 </td>
               </tr>
@@ -253,22 +252,26 @@
     var top_revenue_products = {{ top_revenue_products | tojson }};
     var top_revenue_values = {{ top_revenue_values | tojson }};
 
+    // Force numeric arrays so Chart.js does not fall back to 0..1 axes when values are parsed as non-numeric.
+    const safeTopQtyValues = (top_qty_values || []).map(v => Number(v) || 0);
+    const safeTopRevenueValues = (top_revenue_values || []).map(v => Number(v) || 0);
+
     // Chart.js configurations with dark theme
     const chartOptions = {
       responsive: true,
       plugins: {
         legend: {
-          labels: { color: '#8b90b0' }
+          labels: { color: '#31433c' }
         }
       },
       scales: {
         x: {
-          grid: { color: 'rgba(255,255,255,0.07)' },
-          ticks: { color: '#8b90b0' }
+          grid: { color: 'rgba(20,34,29,0.1)' },
+          ticks: { color: '#31433c' }
         },
         y: {
-          grid: { color: 'rgba(255,255,255,0.07)' },
-          ticks: { color: '#8b90b0' }
+          grid: { color: 'rgba(20,34,29,0.1)' },
+          ticks: { color: '#31433c' }
         }
       }
     };
@@ -280,8 +283,8 @@
         datasets: [{
           label: 'Revenue',
           data: revenue_values,
-          borderColor: '#4f8fff',
-          backgroundColor: 'rgba(79,143,255,0.1)',
+          borderColor: '#7b1e3a',
+          backgroundColor: 'rgba(123,30,58,0.16)',
           fill: true,
           tension: 0.4
         }]
@@ -296,8 +299,8 @@
         datasets: [{
           label: 'Profit',
           data: profit_values,
-          borderColor: '#00e5b0',
-          backgroundColor: 'rgba(0,229,176,0.1)',
+          borderColor: '#a63a5f',
+          backgroundColor: 'rgba(166,58,95,0.16)',
           fill: true,
           tension: 0.4
         }]
@@ -311,14 +314,22 @@
         labels: top_qty_products,
         datasets: [{
           label: 'Units Sold',
-          data: top_qty_values,
-          backgroundColor: '#7c5cff',
+          data: safeTopQtyValues,
+          backgroundColor: '#8f2f4f',
+          borderColor: '#5a1029',
+          borderWidth: 1,
           borderRadius: 4
         }]
       },
       options: {
         ...chartOptions,
-        indexAxis: 'y',
+        scales: {
+          ...chartOptions.scales,
+          y: {
+            ...chartOptions.scales.y,
+            beginAtZero: true,
+          }
+        },
         plugins: {
           legend: { display: false }
         }
@@ -331,14 +342,22 @@
         labels: top_revenue_products,
         datasets: [{
           label: 'Revenue',
-          data: top_revenue_values,
-          backgroundColor: '#ff6b6b',
+          data: safeTopRevenueValues,
+          backgroundColor: '#cb6c86',
+          borderColor: '#7b1e3a',
+          borderWidth: 1,
           borderRadius: 4
         }]
       },
       options: {
         ...chartOptions,
-        indexAxis: 'y',
+        scales: {
+          ...chartOptions.scales,
+          y: {
+            ...chartOptions.scales.y,
+            beginAtZero: true,
+          }
+        },
         plugins: {
           legend: { display: false }
         }
