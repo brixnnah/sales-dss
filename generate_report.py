@@ -122,7 +122,7 @@ meta = [
     ('System Type',   'Web-Based Decision Support System'),
     ('Stack',         'Python · Flask · Prophet · Pandas · Chart.js'),
     ('Date',          'April 2026'),
-    ('Team Members',  '[Student 1 Name] · [Student 2 Name] · [Student 3 Name]'),
+    ('Team Members',  'Brianna Mireri · David Baya'),
 ]
 add_table(['Field', 'Detail'], meta, col_widths=[1.5, 4.0])
 doc.add_page_break()
@@ -283,7 +283,7 @@ add_table(
 )
 
 heading('3.3 Data Cleaning Pipeline', 2)
-para('The cleaning pipeline in cleaning.py performs 8 sequential steps:')
+para('The cleaning pipeline in cleaning.py performs 8 sequential steps. Each step is described below with its rationale.')
 steps = [
     ('Status Filtering', 'Retain only received and complete orders; exclude cancelled or refunded records.'),
     ('PII Column Removal', 'Drop personally identifiable fields (name, email, SSN, phone, address) and irrelevant noise columns.'),
@@ -299,6 +299,102 @@ add_table(
     [(str(i+1), n, d) for i, (n, d) in enumerate(steps)],
     col_widths=[0.4, 1.6, 3.5]
 )
+
+heading('3.3.1 Step-by-Step Justification', 3)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Step 1 — Filter Valid Orders: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Keeps only rows where the order status is "received" or "complete". Cancelled, refunded, and '
+    'processing orders are excluded because they do not represent real fulfilled demand. Including '
+    'them would cause the forecasting model to overestimate true customer demand, leading to inflated '
+    'reorder recommendations.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Step 2 — Drop Irrelevant Columns: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Removes 18 columns including personal information (First Name, Last Name, SSN, E Mail, Phone No.) '
+    'and location/discount fields (City, State, Zip, Discount_Percent). This serves two purposes: '
+    '(a) data privacy — SSN, email, and phone numbers are personally identifiable information (PII) '
+    'that should not be retained in an analytics dataset; and (b) noise reduction — the forecasting '
+    'model only requires order_date, category, qty_ordered, price, and sku. Extra columns slow '
+    'processing without contributing analytical value.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Step 3 — Remove Missing Values: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Drops any row missing qty_ordered, price, order_date, or category. These four fields are '
+    'essential: without a date, the row cannot be placed in the time series; without quantity or '
+    'price, demand and revenue cannot be computed; without category, the row cannot be grouped. '
+    'Incomplete rows would cause NaN propagation errors in downstream aggregation and forecasting.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Step 4 — Remove Invalid Numbers: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Removes rows where qty_ordered ≤ 0 or price ≤ 0. Zero or negative quantities likely represent '
+    'data entry errors or product returns. Negative prices are nonsensical. Including these values '
+    'would distort average demand calculations and make the reorder point formula produce unreliable '
+    'recommendations.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Step 5 — Convert Date: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Converts the order_date column from raw strings to Python datetime objects. This conversion is '
+    'required for all time-based operations in the system: monthly and weekly resampling, Prophet '
+    'time-series forecasting, and date-range filtering on the dashboard. Without this step, pandas '
+    'treats dates as plain text and cannot perform chronological sorting or temporal aggregation.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Step 6 — Category-Day Aggregation: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Groups all individual order-line records by (category, order_date) and computes: total '
+    'qty_ordered (sum), average unit price (mean), and count of distinct SKUs (nunique). The raw '
+    'data contains one row per order line item (~286,000 rows), but the DSS forecasts at the '
+    'category-day level, not the individual order level. This aggregation creates the time series '
+    'that Prophet requires — one data point per category per day. This is the step that reduces '
+    '286,392 rows to approximately 4,683 rows.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Step 7 — Cap Outliers at 99th Percentile: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'For each category, any daily quantity value above the 99th percentile is clamped down to that '
+    'threshold. Extreme spikes — for example, a single day with 10× normal volume due to a bulk '
+    'order or a data entry error — would distort Prophet\'s trend estimation and inflate safety '
+    'stock calculations. Capping rather than deleting preserves the row in the time series while '
+    'limiting its statistical impact.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Step 8 — Remove Rare Categories: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Drops any category that appears on fewer than 5 distinct sales days. Prophet requires a minimum '
+    'number of data points to detect weekly seasonality patterns. A category with only 2–3 days of '
+    'history cannot support meaningful forecasting — the model would either overfit or fail entirely. '
+    'This step retains only the 15 categories with sufficient data density for reliable time-series modeling.'
+)
+set_font(r2)
+doc.add_paragraph()
 
 heading('3.4 Cleaning Results', 2)
 add_table(
@@ -519,15 +615,107 @@ add_table(
 )
 
 heading('6.6 Automated Test Results', 2)
-add_table(
-    ['Test', 'Description', 'Result'],
-    [
-        ('test_compute_daily_metrics_uses_category', 'Verifies metrics function returns category-level breakdown', '✅ PASS'),
-        ('test_build_dss_recommendations',           'Verifies reorder recommendations computed correctly',       '✅ PASS'),
-        ('test_load_data_has_order_date',            'Verifies data loader parses dates correctly',               '✅ PASS'),
-    ],
-    col_widths=[2.4, 2.6, 0.7]
+para(
+    'The test suite in tests/test_app.py contains 7 automated tests that validate the core decision '
+    'logic, data pipeline, and edge case handling. All tests use a small synthetic dataset (fixture) '
+    'rather than the full 286K-row CSV, ensuring tests are fast and reproducible without external file dependencies.'
 )
+add_table(
+    ['#', 'Test Name', 'Result'],
+    [
+        ('1', 'test_compute_daily_metrics_uses_category',                          '✅ PASS'),
+        ('2', 'test_build_dss_recommendations',                                     '✅ PASS'),
+        ('3', 'test_load_data_has_order_date',                                      '✅ PASS'),
+        ('4', 'test_inventory_recommendation_invariants',                            '✅ PASS'),
+        ('5', 'test_inventory_recommendation_empty_category_returns_none',            '✅ PASS'),
+        ('6', 'test_inventory_recommendation_monotonic_with_lead_time_and_service_level', '✅ PASS'),
+        ('7', 'test_compute_eda_returns_visualization_series',                       '✅ PASS'),
+    ],
+    col_widths=[0.3, 3.8, 0.7]
+)
+
+heading('6.6.1 Test Descriptions and Rationale', 3)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Test 1 — test_compute_daily_metrics_uses_category: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Calls the compute_daily_metrics() function and verifies that the result contains a '
+    'top_qty_products key with valid category names. This validates that the dashboard KPI engine '
+    'correctly groups sales data by product category. If this test fails, the home page would show '
+    'broken or empty charts.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Test 2 — test_build_dss_recommendations: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Feeds top categories and their quantities into build_dss_recommendations() and checks that '
+    'recommendations are generated and that the recommended_reorder value is at least as large as '
+    'the monthly_average. This validates the core DSS rule-based logic: the reorder recommendation '
+    'must always include a buffer above average demand. If this test fails, the system would recommend '
+    'understocking, defeating the purpose of the DSS.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Test 3 — test_load_data_has_order_date: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Creates a temporary CSV file, loads it with load_data(), and verifies the resulting DataFrame '
+    'is non-empty and contains an order_date column. This validates the data loading pipeline, '
+    'ensuring dates are parsed correctly. If this test fails, all time-based aggregation (monthly '
+    'trends, resampling) and Prophet forecasting would break.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Test 4 — test_inventory_recommendation_invariants: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Generates an inventory recommendation for the electronics category and verifies three invariants: '
+    'reorder_point ≥ 0, safety_stock ≥ 0, and target_stock == reorder_point + safety_stock. This '
+    'validates the inventory formula correctness. Target stock must always equal ROP + SS by definition — '
+    'a mismatch would indicate a calculation bug. Negative values would be physically nonsensical since '
+    'you cannot stock a negative number of units.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Test 5 — test_inventory_recommendation_empty_category_returns_none: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Requests an inventory recommendation for a non-existent category and expects None in return. '
+    'This tests edge case handling: if a user selects a category that has no data, the system should '
+    'gracefully return nothing rather than crashing with a division-by-zero or index error.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Test 6 — test_inventory_recommendation_monotonic_with_lead_time_and_service_level: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Computes three inventory recommendations with different parameters: a base case (7-day lead time, '
+    '90% service level), a higher-lead-time case (21 days), and a higher-service-level case (95%). It '
+    'then verifies that longer lead time produces a higher reorder point and target stock, and that higher '
+    'service level produces higher safety stock. This validates business logic monotonicity — the '
+    'inventory formulas must behave in the direction expected by operations management theory. If these '
+    'relationships break, the DSS would give counter-intuitive advice to managers.'
+)
+set_font(r2)
+
+p = doc.add_paragraph()
+r1 = p.add_run('Test 7 — test_compute_eda_returns_visualization_series: ')
+set_font(r1, bold=True)
+r2 = p.add_run(
+    'Runs the compute_eda() function on enriched sample data and checks that price band arrays have '
+    'exactly 5 labels and 5 values, and that category mix arrays (labels, revenue, quantity) are '
+    'consistent in length. This validates the EDA visualization data pipeline. If array lengths '
+    'mismatch, the Chart.js charts on the EDA page would render incorrectly or throw JavaScript errors.'
+)
+set_font(r2)
+doc.add_paragraph()
 doc.add_page_break()
 
 # ═════════════════════════════════════════════════════════════

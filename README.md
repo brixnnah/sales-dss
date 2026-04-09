@@ -39,11 +39,15 @@ flowchart LR
     D --> E[Dashboard Route /]
     D --> F[EDA Route /eda]
     D --> G[Forecast Route /forecast]
+    D --> M[Charts Route /charts]
     G --> H[Prophet Forecast Engine]
     G --> I[Inventory Recommendation Engine]
+    G --> N[What-If Scenario Engine]
     E --> J[Decision Support KPIs]
     F --> K[Exploratory Visual Analysis]
+    M --> O[Combined Visual Analytics]
     I --> L[Reorder and Safety Stock Outputs]
+    N --> P[Scenario Comparison Outputs]
 ```
 
 ## 5. Data Source and Data Handling
@@ -76,18 +80,32 @@ Cleaning steps implemented in `cleaning.py`:
 - Pytest (test validation)
 
 ## 7. Features
+- Login page (`/login`)
+  - Username/password authentication with flask-login
+  - All pages are login-protected
 - Home dashboard (`/`)
   - Revenue, profit, transactions, quantity KPIs
   - Top categories by units and revenue
+  - Quantity trend and revenue mix charts
   - DSS reorder recommendations table
 - EDA dashboard (`/eda`)
   - Monthly trend charts
   - Weekday demand distribution
+  - Price band analysis (polar area chart)
+  - Category mix bubble chart
   - Top categories by quantity and revenue
 - Forecast page (`/forecast`)
   - Category selection and forecast horizon
+  - Adjustable lead time and service level inputs
   - Future demand projections with confidence bounds
   - Inventory recommendation (reorder point, safety stock, target stock)
+  - **What-if scenario comparison**: change lead time or service level to see side-by-side impact on reorder point, safety stock, and target stock vs the base defaults
+- Charts page (`/charts`)
+  - Combined visualization hub with 8 chart types
+  - Revenue trend, revenue mix doughnut, weekday demand bar, price band polar area
+  - Volume vs SKU combo chart, category bubble chart
+  - Forecast trend and confidence range charts
+  - Filter by date range, category, top-N, and forecast days
 
 ## 8. Installation and Run
 ### Prerequisites
@@ -106,9 +124,10 @@ pip install pytest
 python app.py
 ```
 Then open:
-- http://127.0.0.1:5000/
-- http://127.0.0.1:5000/eda
-- http://127.0.0.1:5000/forecast
+- http://127.0.0.1:5000/ (Home dashboard)
+- http://127.0.0.1:5000/eda (EDA analysis)
+- http://127.0.0.1:5000/forecast (Forecast + what-if scenarios)
+- http://127.0.0.1:5000/charts (Combined charts page)
 
 ### Run tests
 ```bash
@@ -120,6 +139,7 @@ python -m pytest -q
 app.py
 cleaning.py
 python_clean_file.py
+generate_report.py
 requirements.txt
 sales.csv
 sales_CLEANED.csv
@@ -128,6 +148,8 @@ Templates/
   index.html
   eda.html
   forecast.html
+  charts.html
+  login.html
   home.html
 static/
   styles.css
@@ -144,9 +166,8 @@ Add screenshots before submission:
 ## 11. Team Members and Contributions
 Update this section with your actual team details before final submission.
 
-- Student 1: Data collection, cleaning pipeline, EDA preparation
-- Student 2: Forecast model implementation, inventory decision logic
-- Student 3: Flask integration, UI/dashboard, testing and documentation
+- Brianna Mireri: Data collection, cleaning pipeline, EDA preparation, Flask integration, UI/dashboard
+- David Baya: Forecast model implementation, inventory decision logic, testing and documentation
 
 ## 12. Evaluation, Challenges, and Limitations
 ### Evaluation
@@ -161,11 +182,10 @@ Update this section with your actual team details before final submission.
 
 ### Limitations
 - Current forecast is category-level (not SKU-level)
-- Lead time and service level are currently fixed defaults in UI flow
 - External factors (promotions, holidays, seasonality events) are not explicitly modeled
 
 ## 13. Conclusion and Recommendations
-This project delivers a working DSS artifact that combines DSS theory, practical preprocessing, forecasting, and rule-based inventory recommendations. It can be extended by:
-- adding scenario simulation for lead times and service levels,
+This project delivers a working DSS artifact that combines DSS theory, practical preprocessing, forecasting, rule-based inventory recommendations, and interactive what-if scenario analysis. It can be extended by:
 - introducing SKU-level modeling,
-- including richer exogenous variables for forecast improvement.
+- including richer exogenous variables for forecast improvement,
+- adding multi-period scenario simulation with cost optimization.
