@@ -160,8 +160,8 @@ tests/
 
 ## 11. Team Members and Contributions
 
--Brianna: I handled  Data collection , cleaning of the data , EDA preparation
-- Brianna  :  I also handled the Forecast model implementation, inventory decision logic
+-Brianna:Handled  Data collection , cleaning of the data , EDA preparation
+- Brianna  :Handled the Forecast model implementation, inventory decision logic
 - David: Flask integration, UI/dashboard, testing and documentation
 
 ## 12. Evaluation, Challenges, and Limitations
