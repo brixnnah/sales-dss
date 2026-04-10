@@ -9,7 +9,7 @@
 | **System Type** | Web-Based Decision Support System |
 | **Technology Stack** | Python, Flask, Prophet, Pandas, Chart.js |
 | **Date** | April 2026 |
-| **Team Members** | [Student 1 Name] · [Student 2 Name] · [Student 3 Name] |
+| **Team Members** | Brianna Mireri, David Baya |
 
 ---
 
