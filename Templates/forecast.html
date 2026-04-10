@@ -85,6 +85,19 @@
             <label>Forecast Days</label>
             <input type="number" name="days" min="7" max="90" value="{{ days }}" />
           </div>
+          <div class="field">
+            <label>Lead Time (days)</label>
+            <input type="number" name="lead_time" min="1" max="90" value="{{ lead_time }}" />
+          </div>
+          <div class="field">
+            <label>Service Level</label>
+            <select name="service_level">
+              <option value="0.85" {% if service_level == 0.85 %}selected{% endif %}>85%</option>
+              <option value="0.90" {% if service_level == 0.90 %}selected{% endif %}>90%</option>
+              <option value="0.95" {% if service_level == 0.95 %}selected{% endif %}>95%</option>
+              <option value="0.99" {% if service_level == 0.99 %}selected{% endif %}>99%</option>
+            </select>
+          </div>
           <div class="field" style="align-self: end;">
             <button type="submit" class="btn btn-primary">Run Forecast</button>
           </div>
@@ -115,6 +128,7 @@
                 <th>Category</th>
                 <th>Avg Monthly Demand</th>
                 <th>Lead Time Days</th>
+                <th>Service Level</th>
                 <th>Reorder Point</th>
                 <th>Safety Stock</th>
                 <th>Target Stock</th>
@@ -125,9 +139,59 @@
                 <td>{{ recommendation.category }}</td>
                 <td>{{ recommendation.avg_monthly_demand }}</td>
                 <td>{{ recommendation.lead_time_days }}</td>
+                <td>{{ (recommendation.service_level * 100) | round(0) | int }}%</td>
                 <td>{{ recommendation.reorder_point }}</td>
                 <td>{{ recommendation.safety_stock }}</td>
                 <td>{{ recommendation.target_stock }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if whatif_comparison %}
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">What-If Scenario Comparison</div>
+              <div class="card-subtitle">Base defaults (14-day lead, 95% SL) vs your selected scenario</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Lead Time</th>
+                <th>Service Level</th>
+                <th>Reorder Point</th>
+                <th>Safety Stock</th>
+                <th>Target Stock</th>
+                <th>Δ Target Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Base (Default)</strong></td>
+                <td>{{ whatif_comparison.base.lead_time_days }} days</td>
+                <td>{{ (whatif_comparison.base.service_level * 100) | round(0) | int }}%</td>
+                <td>{{ whatif_comparison.base.reorder_point }}</td>
+                <td>{{ whatif_comparison.base.safety_stock }}</td>
+                <td>{{ whatif_comparison.base.target_stock }}</td>
+                <td>—</td>
+              </tr>
+              <tr style="background: rgba(123,30,58,0.06);">
+                <td><strong>Your Scenario</strong></td>
+                <td>{{ whatif_comparison.scenario.lead_time_days }} days</td>
+                <td>{{ (whatif_comparison.scenario.service_level * 100) | round(0) | int }}%</td>
+                <td>{{ whatif_comparison.scenario.reorder_point }}</td>
+                <td>{{ whatif_comparison.scenario.safety_stock }}</td>
+                <td>{{ whatif_comparison.scenario.target_stock }}</td>
+                <td>
+                  {% set delta = whatif_comparison.scenario.target_stock - whatif_comparison.base.target_stock %}
+                  <span style="color: {% if delta > 0 %}#b91c1c{% elif delta < 0 %}#15803d{% else %}#4b5563{% endif %}; font-weight: 600;">
+                    {{ '%+d' | format(delta) }} units
+                  </span>
+                </td>
               </tr>
             </tbody>
           </table>

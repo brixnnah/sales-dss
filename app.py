@@ -506,25 +506,53 @@ def forecast():
     categories = sorted(df['category'].unique().tolist())
     selected_category = request.args.get('category', categories[0] if categories else '')
     forecast_days = int(request.args.get('days', 30))
+    lead_time = int(request.args.get('lead_time', 14))
+    service_level = float(request.args.get('service_level', 0.95))
+
+    # Clamp values to sensible ranges
+    lead_time = max(1, min(lead_time, 90))
+    service_level = max(0.50, min(service_level, 0.99))
+
     forecast_context = build_forecast_visual_context(df, selected_category, forecast_days)
     recommendation = None
+    whatif_comparison = None
 
     if not forecast_context['error'] and forecast_context['forecast']:
-        recommendation = calculate_inventory_recommendation(
+        # Base recommendation (fixed defaults)
+        base_rec = calculate_inventory_recommendation(
             df,
             selected_category,
             forecast_records=forecast_context['forecast'],
             lead_time_days=14,
             service_level=0.95
         )
+        # User scenario recommendation
+        scenario_rec = calculate_inventory_recommendation(
+            df,
+            selected_category,
+            forecast_records=forecast_context['forecast'],
+            lead_time_days=lead_time,
+            service_level=service_level
+        )
+        recommendation = scenario_rec
+
+        # Build what-if comparison when the user changed defaults
+        if base_rec and scenario_rec and (lead_time != 14 or service_level != 0.95):
+            whatif_comparison = {
+                'base': base_rec,
+                'scenario': scenario_rec,
+            }
 
     return render_template(
         'forecast.html',
         categories=categories,
         selected_category=selected_category,
         days=forecast_days,
+        lead_time=lead_time,
+        service_level=service_level,
         forecast=forecast_context['forecast'],
         recommendation=recommendation,
+        whatif_comparison=whatif_comparison,
         error=forecast_context['error'],
         history_dates=forecast_context['history_dates'],
         history_values=forecast_context['history_values'],
